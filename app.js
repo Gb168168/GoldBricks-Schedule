@@ -2940,6 +2940,16 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     if (filterShift) filterShift.value = "";
   }
 
+  function applyDefaultLeaveFiltersByUser(user) {
+    if (!user) return;
+    selectedRegion = user.region && REGIONS.includes(user.region) ? user.region : "";
+    selectedDepartment = user.department && DEPARTMENTS.includes(user.department) ? user.department : "";
+    pendingSelectedRegion = selectedRegion;
+    pendingSelectedDepartment = selectedDepartment;
+    selectedEmployeeIds = [];
+    pendingSelectedEmployeeIds = [];
+  }
+
   function filterSchedules() {
     const region = filterRegion?.value || "";
     const department = filterDepartment?.value || "";
@@ -2947,6 +2957,9 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     const shift = filterShift?.value || "";
 
     return schedules.filter(function (item) {
+      if (!currentUser) return false;
+      if (item.region !== currentUser.region) return false;
+      if (item.department !== currentUser.department) return false;
       if (region && item.region !== region) return false;
       if (department && item.department !== department) return false;
       const itemEmployee = item.employeeName || item.employee || "";
@@ -3549,8 +3562,11 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   
   function getVisibleLeaveEmployees() {
     return employees.filter((employee) => {
+      if (!currentUser) return false;
       if (employee.isHidden || employee.status === "deleted") return false;
       if (employee.showOnLeaveBoard === false) return false;
+      if (employee.region !== currentUser.region) return false;
+      if (employee.department !== currentUser.department) return false;
       if (selectedRegion && employee.region !== selectedRegion) return false;
       if (selectedDepartment && employee.department !== selectedDepartment) return false;
       if (selectedShiftType && getUserShiftType(employee) !== selectedShiftType) return false;
@@ -4116,6 +4132,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     updateUserInfo(user);
     populateScheduleFilters();
     applyDefaultScheduleFiltersByUser(user);
+    applyDefaultLeaveFiltersByUser(user);
     if (loginPage) loginPage.classList.add("hidden");
     if (mainPage) mainPage.classList.remove("hidden");
     persistCurrentUserSession(user);
