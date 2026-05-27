@@ -2178,7 +2178,17 @@ textarea {
 
 .leave-day-header {
   font-size: 12px;
-  color: var(--text-soft);
+  color: #334155;
+  font-weight: 700;
+}
+
+.leave-day-header span {
+  color: #1e293b;
+}
+
+.leave-day-header small {
+  color: #334155;
+  font-weight: 700;
 }
 
 .leave-day-header-btn {
