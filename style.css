@@ -1776,6 +1776,16 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leave-department-filter-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .leave-employee-option {
@@ -2324,7 +2334,8 @@ textarea {
 
 @media (max-width: 720px) {
   .leave-inline-summary,
-  .leave-employee-filter-list {
+  .leave-employee-filter-list,
+  .leave-department-filter-list
     grid-template-columns: 1fr;
   }
   
