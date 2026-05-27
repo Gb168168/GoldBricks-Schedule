@@ -556,7 +556,8 @@ function isLoginEligible(user) {
 }
 
 function getLoginIdentifiers(user) {
-  return [user?.employeeId, user?.account, user?.id, user?.email]
+  const composedEmail = user?.email || (user?.emailPrefix ? `${String(user.emailPrefix).trim()}@goldbricks.com.tw` : "");
+  return [user?.employeeId, user?.account, user?.id, user?.email, composedEmail]
     .map(normalizeLoginValue)
     .filter(Boolean);
 }
@@ -4219,7 +4220,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
         if (changePasswordError) changePasswordError.textContent = "請完整填寫所有欄位。";
         return;
       }
-      if (currentPassword !== (currentUser.password || "")) {
+      if (!isPasswordMatched(currentUser, normalizePasswordValue(currentPassword))) {
         if (changePasswordError) changePasswordError.textContent = "目前密碼不正確。";
         return;
       }
