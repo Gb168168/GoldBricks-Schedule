@@ -2335,14 +2335,14 @@ textarea {
 @media (max-width: 720px) {
   .leave-inline-summary,
   .leave-employee-filter-list,
-  .leave-department-filter-list
+  .leave-department-filter-list {
     grid-template-columns: 1fr;
   }
-  
+
   .leave-employee-filter-fields {
     grid-template-columns: 1fr;
   }
-  
+
   .leave-employee-filter-popover {
     left: 0;
     width: min(92vw, 640px);
