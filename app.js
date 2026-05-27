@@ -609,8 +609,16 @@ function getLoginFailureMessage(employeeId, password) {
   const normalizedEmployeeId = normalizeLoginValue(employeeId);
   const normalizedPassword = normalizePasswordValue(password);
 
-  if (!normalizedEmployeeId || !normalizedPassword) {
+  if (!normalizedEmployeeId && !normalizedPassword) {
     return "請輸入帳號與密碼。";
+  }
+
+  if (!normalizedEmployeeId) {
+    return "請輸入帳號（employeeId / account / email）。";
+  }
+
+  if (!normalizedPassword) {
+    return "請輸入密碼。";
   }
 
   const normalizedUsers = Array.from(new Set([...employees, ...users]));
@@ -627,7 +635,7 @@ function getLoginFailureMessage(employeeId, password) {
   }
 
   if (!isPasswordMatched(matchedByIdentifier, normalizedPassword)) {
-    return "密碼錯誤。若員工尚未設定密碼，可改用員工編號或 account 登入。";
+    return "密碼錯誤，請確認大小寫與前後空白。若員工尚未設定密碼，可改用員工編號或 account 登入。";
   }
 
   return "員工編號或密碼錯誤。";
