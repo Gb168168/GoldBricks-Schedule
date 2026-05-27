@@ -1052,6 +1052,8 @@ function getCurrentPositionAsync() {
   });
 }
 
+let currentUserTime = null;
+
 document.addEventListener("DOMContentLoaded", function () {
    // 優先載入內建帳號，避免遠端資料未就緒時卡住登入流程
   employees = getBuiltinEmployees();
@@ -1080,7 +1082,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const currentUserName = document.getElementById("current-user-name");
-  const currentUserTime = document.getElementById("current-user-time");
+  currentUserTime = document.getElementById("current-user-time");
   const shiftInfo = document.getElementById("today-shift-info");
 
   const attendanceStatusBadge = document.getElementById("attendance-status-badge");
