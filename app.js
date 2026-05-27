@@ -3561,15 +3561,20 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   }
   
   function getVisibleLeaveEmployees() {
+    const normalizedSelectedEmployeeIds = Array.from(new Set(
+      selectedEmployeeIds.map((id) => String(id || "").trim()).filter(Boolean)
+    ));
     return employees.filter((employee) => {
       if (!currentUser) return false;
-      const normalizedEmployeeId = String(employee.employeeId || "");
+      const normalizedEmployeeId = String(employee.employeeId || "").trim();
       if (employee.isHidden || employee.status === "deleted") return false;
       if (employee.showOnLeaveBoard === false) return false;
+      if (normalizedSelectedEmployeeIds.length > 0) {
+        return normalizedSelectedEmployeeIds.includes(normalizedEmployeeId);
+      }
       if (selectedRegion && employee.region !== selectedRegion) return false;
       if (selectedDepartments.length && !selectedDepartments.includes(employee.department)) return false;
       if (selectedShiftType && getUserShiftType(employee) !== selectedShiftType) return false;
-      if (selectedEmployeeIds.length > 0 && !selectedEmployeeIds.some((id) => String(id || "") === normalizedEmployeeId)) return false;
       return true;
     });
   }
