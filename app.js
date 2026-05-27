@@ -3565,8 +3565,6 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       if (!currentUser) return false;
       if (employee.isHidden || employee.status === "deleted") return false;
       if (employee.showOnLeaveBoard === false) return false;
-      if (employee.region !== currentUser.region) return false;
-      if (employee.department !== currentUser.department) return false;
       if (selectedRegion && employee.region !== selectedRegion) return false;
       if (selectedDepartments.length && !selectedDepartments.includes(employee.department)) return false;
       if (selectedShiftType && getUserShiftType(employee) !== selectedShiftType) return false;
