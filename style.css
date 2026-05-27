@@ -1774,9 +1774,9 @@ textarea {
 
 .leave-employee-filter-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  max-height: min(42vh, 320px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: min(52vh, 460px);
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -1790,9 +1790,9 @@ textarea {
 
 .leave-employee-option {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  padding: 8px;
+  padding: 12px;
   border-radius: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2146,7 +2146,7 @@ textarea {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 32px));
+  width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   z-index: 5;
   border: 1px solid var(--border);
