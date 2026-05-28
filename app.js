@@ -1353,6 +1353,30 @@ document.addEventListener("DOMContentLoaded", function () {
     button.setAttribute("data-short", getMenuButtonShortLabel(buttonLabel));
   });
   
+  function activatePage(targetPage, options = {}) {
+    const shouldCollapseSidebar = options.collapseSidebar !== false;
+    const targetButton = Array.from(menuButtons).find((button) => button.dataset.page === targetPage);
+    const resolvedPage = targetButton?.dataset.page || targetPage || "home";
+
+    menuButtons.forEach((btn) => btn.classList.remove("active"));
+    if (targetButton) targetButton.classList.add("active");
+
+    pageSections.forEach((section) => section.classList.add("hidden"));
+    const targetSection = document.getElementById(`page-${resolvedPage}`);
+    if (targetSection) targetSection.classList.remove("hidden");
+
+    if (pageTitle && targetButton) pageTitle.textContent = targetButton.textContent;
+
+    if (resolvedPage === "roster") {
+      applyDefaultScheduleFiltersByUser(currentUser);
+      renderSchedules();
+      renderRosterCalendar();
+    }
+
+    closeAttendanceRecordPopover();
+    if (shouldCollapseSidebar) setSidebarCollapsed(true);
+  }
+  
   function populateCoordinateRegionOptions() {
     if (!coordinateRegionSelect) return;
     coordinateRegionSelect.innerHTML = REGIONS.map((region) => `<option value="${region}">${region}</option>`).join("");
@@ -4247,6 +4271,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     if (mainPage) mainPage.classList.remove("hidden");
     persistCurrentUserSession(user);
     updateMenuPermissions(user);
+    activatePage("home", { collapseSidebar: false });
     toggleEmployeeManagementUI();
     refreshAttendanceSettings();
     renderLeaves();
@@ -4391,21 +4416,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
 
   menuButtons.forEach(function (button) {
     button.addEventListener("click", function () {
-      const targetPage = button.dataset.page;
-      menuButtons.forEach((btn) => btn.classList.remove("active"));
-      button.classList.add("active");
-      pageSections.forEach((section) => section.classList.add("hidden"));
-      const targetSection = document.getElementById(`page-${targetPage}`);
-      if (targetSection) targetSection.classList.remove("hidden");
-      if (pageTitle) pageTitle.textContent = button.textContent;
-      if (targetPage === "roster") {
-        applyDefaultScheduleFiltersByUser(currentUser);
-        renderSchedules();
-        renderRosterCalendar();
-      }
-      closeAttendanceRecordPopover();
-      setSidebarCollapsed(true);
-      
+      activatePage(button.dataset.page);
     });
   });
 
