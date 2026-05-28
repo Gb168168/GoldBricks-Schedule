@@ -1161,8 +1161,37 @@ input[type="radio"] {
   background: var(--surface-soft);
 }
 
-.permission-editor-section h5 {
-  margin: 0 0 8px;
+.permission-editor-section summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.permission-editor-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.permission-editor-section summary::after {
+  content: "⌃";
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.permission-editor-section:not([open]) summary::after {
+  transform: rotate(180deg);
+}
+
+.permission-editor-section[open] summary {
+  margin-bottom: 8px;
 }
 
 .permission-editor-section .field-label {
