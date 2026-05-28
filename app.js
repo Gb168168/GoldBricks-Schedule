@@ -5329,6 +5329,12 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     permissionLeaveApproveScopeBox.classList.toggle("hidden", !permLeaveApproveInput?.checked);
   }
   
+  function collapsePermissionEditorSections() {
+    permissionEditorForm?.querySelectorAll("details.permission-editor-section").forEach((section) => {
+      section.open = false;
+    });
+  }
+  
     function closePermissionEditor() {
     editingPermissionEmployeeId = null;
     permissionEditorBackdrop?.classList.add("hidden");
@@ -5361,6 +5367,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     setScopeEntrySelections(permScheduleEditRegionDepartments, scheduleEditEntries);
     setScopeSelections(permManageRegionDepartments, currentRegions, currentDepartments);
     updatePermissionEditorLeaveScopeVisibility();
+    collapsePermissionEditorSections();
     permissionEditorBackdrop?.classList.remove("hidden");
   }
 
