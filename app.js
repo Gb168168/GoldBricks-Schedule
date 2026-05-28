@@ -3013,6 +3013,13 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     return filterSchedules().filter((item) => normalizeScheduleDateValue(item.date) === normalizedDate && canViewScheduleItem(item));
   }
 
+  function isScheduleInRosterMonth(item) {
+    const normalizedDate = normalizeScheduleDateValue(item.date);
+    if (!normalizedDate) return false;
+    const [itemYear, itemMonth] = normalizedDate.split("-").map((value) => Number(value));
+    return itemYear === rosterCalendarDate.getFullYear() && itemMonth === rosterCalendarDate.getMonth() + 1;
+  }
+  
   function populateScheduleFilters() {
     if (!filterRegion || !filterDepartment || !filterEmployee) return;
     const previousRegion = filterRegion.value || "";
@@ -3335,10 +3342,10 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     }
 
     const filteredSchedules = filterSchedules();
-    const visibleSchedules = filteredSchedules.filter((item) => canViewScheduleItem(item));
+    const visibleSchedules = filteredSchedules.filter((item) => canViewScheduleItem(item) && isScheduleInRosterMonth(item));
 
     if (!visibleSchedules.length) {
-      rosterList.innerHTML = `<div class="list-item"><p>目前沒有排程資料。</p></div>`;
+      rosterList.innerHTML = `<div class="list-item"><p>本月目前沒有排程資料。</p></div>`;
       return;
     }
 
@@ -4771,6 +4778,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   if (rosterPrevMonthBtn) {
     rosterPrevMonthBtn.addEventListener("click", function () {
       rosterCalendarDate.setMonth(rosterCalendarDate.getMonth() - 1);
+      renderSchedules();
       renderRosterCalendar();
     });
   }
@@ -4778,6 +4786,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   if (rosterNextMonthBtn) {
     rosterNextMonthBtn.addEventListener("click", function () {
       rosterCalendarDate.setMonth(rosterCalendarDate.getMonth() + 1);
+      renderSchedules();
       renderRosterCalendar();
     });
   }
