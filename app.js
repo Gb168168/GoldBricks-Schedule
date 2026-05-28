@@ -1107,6 +1107,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const employeeFormCard = document.getElementById("employee-form-card");
   const employeeList = document.getElementById("employee-list");
   const permissionsEmployeeList = document.getElementById("permissions-employee-list");
+  const permissionsPanel = document.getElementById("permissions-panel");
   const employeeDepartmentSelect = document.getElementById("employee-form-department");
   const employeeRegionSelect = document.getElementById("employee-form-region");
   const manageRegionDepartments = document.getElementById("manage-region-departments");
@@ -2629,9 +2630,14 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     }
   }
 
+  function canViewPermissionsPanel(user) {
+    return canManageEmployees(user) || Boolean(user?.permissions?.permissionsListVisible);
+  }
+  
   function toggleEmployeeManagementUI() {
     const allowManage = canManageEmployees(currentUser);
     if (employeeFormCard) employeeFormCard.classList.toggle("hidden", !allowManage);
+    if (permissionsPanel) permissionsPanel.classList.toggle("hidden", !canViewPermissionsPanel(currentUser));
     renderEmployees();
   }
 
@@ -2731,6 +2737,12 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
 
   function renderPermissionsEmployeeList() {
     if (!permissionsEmployeeList) return;
+    const allowPermissionPanel = canViewPermissionsPanel(currentUser);
+    if (permissionsPanel) permissionsPanel.classList.toggle("hidden", !allowPermissionPanel);
+    if (!allowPermissionPanel) {
+      permissionsEmployeeList.innerHTML = "";
+      return;
+    }
 
     const visibleEmployees = employees.filter(function (employee) {
       return !employee.isHidden;
