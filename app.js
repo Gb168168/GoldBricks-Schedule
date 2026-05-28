@@ -1307,6 +1307,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (attendanceMenuBtn) {
       attendanceMenuBtn.classList.toggle("hidden", !allowShiftAttendance);
     }
+    if (openScheduleCreateBtn) {
+      openScheduleCreateBtn.classList.toggle("hidden", !canEditAnySchedule(user));
+    }
+    if (scheduleDetailAddBtn) {
+      scheduleDetailAddBtn.classList.toggle("hidden", !canEditAnySchedule(user));
+    }
     
     if (homeTodayAttendanceCard) {
       homeTodayAttendanceCard.classList.toggle("hidden", !canViewTodayAttendanceStaff(user));
@@ -2583,18 +2589,13 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   function getScheduleScopeEntries(user, scopeType = "view") {
     if (!user) return [];
     if (canManageAllSchedules(user)) return getAllScheduleScopeEntries();
-    const scheduleScopes = user.scheduleScopes || {};
-    const hasExplicitScopes = Array.isArray(scheduleScopes.view) || Array.isArray(scheduleScopes.edit);
-    if (!hasExplicitScopes) return getOwnDepartmentScopeEntry(user);
-
-    const viewEntries = normalizeScopeEntries(scheduleScopes.view || []);
-    const editEntries = normalizeScopeEntries(scheduleScopes.edit || []);
-    if (scopeType === "edit") return editEntries;
-    return normalizeScopeEntries([...viewEntries, ...editEntries]);
+    if (scopeType === "view") return getAllScheduleScopeEntries();
+    return normalizeScopeEntries(user.scheduleScopes?.edit || []);
   }
 
   function canAccessScheduleScope(item, user, scopeType = "view") {
     if (!user || !item) return false;
+    if (scopeType === "view") return true;
     if (canManageAllSchedules(user)) return true;
     const scheduleRegion = String(item.region || "").trim();
     const scheduleDepartment = getScheduleDepartment(item);
@@ -2933,6 +2934,10 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     return canAccessScheduleScope(item, viewer, "edit");
   }
 
+  function canEditAnySchedule(user = currentUser) {
+    return canManageAllSchedules(user) || getScheduleScopeEntries(user, "edit").length > 0;
+  }
+
   function formatScheduleDate(year, monthIndex, day) {
     return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
@@ -2975,13 +2980,8 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     const previousDepartment = filterDepartment.value || "";
     const previousEmployee = filterEmployee.value || "";
 
-    const viewScopeEntries = getScheduleScopeEntries(currentUser, "view");
-    const filterRegions = canManageAllSchedules(currentUser)
-      ? REGIONS
-      : REGIONS.filter((region) => viewScopeEntries.some((entry) => entry.region === region));
-    const filterDepartments = canManageAllSchedules(currentUser)
-      ? DEPARTMENTS
-      : DEPARTMENTS.filter((department) => viewScopeEntries.some((entry) => entry.department === department));
+    const filterRegions = REGIONS;
+    const filterDepartments = DEPARTMENTS;
 
     filterRegion.innerHTML = `<option value="">全部地區</option>${filterRegions.map((region) => `<option value="${region}">${region}</option>`).join("")}`;
     filterDepartment.innerHTML = `<option value="">全部部門</option>${filterDepartments.map((department) => `<option value="${department}">${department}</option>`).join("")}`;
@@ -3000,7 +3000,6 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
         if (employee.isHidden || employee.status === "deleted") return false;
         if (region && employee.region !== region) return false;
         if (department && employee.department !== department) return false;
-        if (!canManageAllSchedules(currentUser) && !canAccessScheduleScope(employee, currentUser, "view")) return false;
         return true;
       })
       .map((employee) => ({ value: employee.name || employee.employeeId, label: employee.name || employee.employeeId }));
@@ -3011,11 +3010,8 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
 
   function applyDefaultScheduleFiltersByUser(user) {
     if (!user || !filterRegion || !filterDepartment || !filterEmployee) return;
-    const viewScopeEntries = getScheduleScopeEntries(user, "view");
-    const canUseOwnRegion = viewScopeEntries.some((entry) => entry.region === user.region);
-    const canUseOwnDepartment = viewScopeEntries.some((entry) => entry.department === user.department);
-    filterRegion.value = user.region && (canManageAllSchedules(user) || canUseOwnRegion) ? user.region : "";
-    filterDepartment.value = user.department && (canManageAllSchedules(user) || canUseOwnDepartment) ? user.department : "";
+    filterRegion.value = user.region && REGIONS.includes(user.region) ? user.region : "";
+    filterDepartment.value = user.department && DEPARTMENTS.includes(user.department) ? user.department : "";
     refreshScheduleFilterEmployeeOptions("");
     filterEmployee.value = "";
     if (filterShift) filterShift.value = "";
@@ -3137,6 +3133,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       ? `${dateString} 行程`
       : `${dateObj.getMonth() + 1}/${dateObj.getDate()} 行程`;
     if (scheduleDetailTitle) scheduleDetailTitle.textContent = title;
+    if (scheduleDetailAddBtn) scheduleDetailAddBtn.classList.toggle("hidden", !canEditAnySchedule(currentUser));
 
     const grouped = groupSchedulesForDetail(dateString);
     if (!grouped.size) {
@@ -3245,7 +3242,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   function openScheduleModal(dateString, scheduleItem = null) {
     if (!currentUser) return alert("請先登入");
     selectedScheduleDate = dateString;
-    if (!canManageAllSchedules(currentUser) && getScheduleScopeEntries(currentUser, "edit").length === 0) {
+    if (!canEditAnySchedule(currentUser)) {
       return alert("你沒有可編輯排程的部門權限。");
     }
     populateScheduleModalOptions();
@@ -4536,7 +4533,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
           : { regions: [], departments: [] },
         scheduleScopes: isSuperAdmin
           ? { view: getAllScheduleScopeEntries(), edit: getAllScheduleScopeEntries() }
-          : { view: getOwnDepartmentScopeEntry({ region, department }), edit: getOwnDepartmentScopeEntry({ region, department }) },
+          : { view: getAllScheduleScopeEntries(), edit: [] },
         status: "active",
         isHidden: false,
         fcmToken: editingEmployeeId ? (employees.find((item) => item.id === editingEmployeeId)?.fcmToken || "") : "",
@@ -5383,10 +5380,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     if (permCoordinateListVisibleInput) permCoordinateListVisibleInput.checked = Boolean(normalizedPermissions.coordinateListVisible);
     const currentRegions = Array.isArray(employee.manageScopes?.regions) ? employee.manageScopes.regions : [];
     const currentDepartments = Array.isArray(employee.manageScopes?.departments) ? employee.manageScopes.departments : [];
-    const hasScheduleScopes = Array.isArray(employee.scheduleScopes?.view) || Array.isArray(employee.scheduleScopes?.edit);
-    const scheduleViewEntries = hasScheduleScopes ? normalizeScopeEntries(employee.scheduleScopes?.view || []) : getOwnDepartmentScopeEntry(employee);
-    const scheduleEditEntries = hasScheduleScopes ? normalizeScopeEntries(employee.scheduleScopes?.edit || []) : getOwnDepartmentScopeEntry(employee);
-    setScopeEntrySelections(permScheduleViewRegionDepartments, scheduleViewEntries);
+    const scheduleEditEntries = normalizeScopeEntries(employee.scheduleScopes?.edit || []);
     setScopeEntrySelections(permScheduleEditRegionDepartments, scheduleEditEntries);
     setScopeSelections(permManageRegionDepartments, currentRegions, currentDepartments);
     updatePermissionEditorLeaveScopeVisibility();
@@ -5426,10 +5420,9 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       if (leaveApproveEnabled && (nextManageScopes.regions.length === 0 || nextManageScopes.departments.length === 0)) {
         return alert("審核假別需至少勾選 1 個地區與 1 個部門");
       }
-      const selectedScheduleViewScopes = normalizeScopeEntries(getScopeSelections(permScheduleViewRegionDepartments));
       const selectedScheduleEditScopes = normalizeScopeEntries(getScopeSelections(permScheduleEditRegionDepartments));
       const nextScheduleScopes = {
-        view: normalizeScopeEntries([...selectedScheduleViewScopes, ...selectedScheduleEditScopes]),
+        view: getAllScheduleScopeEntries(),
         edit: selectedScheduleEditScopes
       };
       const nextPermissions = normalizeEmployeePermissions({
