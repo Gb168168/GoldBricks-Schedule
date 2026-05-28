@@ -1289,8 +1289,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateMenuPermissions(user) {
    if (permissionsMenuBtn) {
-      const allowPermissionPage = canManageEmployees(user) || Boolean(user?.permissions?.permissionsListVisible);
-      permissionsMenuBtn.classList.toggle("hidden", !allowPermissionPage);
+      permissionsMenuBtn.classList.add("hidden");
     }
     if (coordinateMenuBtn) {
       coordinateMenuBtn.classList.toggle("hidden", !canManageCoordinates(user));
@@ -2637,7 +2636,6 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   function toggleEmployeeManagementUI() {
     const allowManage = canManageEmployees(currentUser);
     if (employeeFormCard) employeeFormCard.classList.toggle("hidden", !allowManage);
-    if (permissionsPanel) permissionsPanel.classList.toggle("hidden", !canViewPermissionsPanel(currentUser));
     renderEmployees();
   }
 
@@ -2711,7 +2709,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
                                   <p>休假表顯示：${showOnLeaveBoard ? "顯示" : "隱藏"}</p>
                                   <p>功能權限：${formatEmployeePermissions(employee)}</p>`
                                     : `<p>${limitedInfoText}</p>`}
-                                  ${canManageEmployeeData ? `<div class="item-actions"><button type="button" class="small-btn edit-btn" onclick="editEmployee('${employee.id}')">編輯</button><button type="button" class="small-btn delete-btn" onclick="deleteEmployee('${employee.id}')">刪除</button></div>` : ""}
+                                 ${canManageEmployeeData ? `<div class="item-actions"><button type="button" class="small-btn edit-btn" onclick="editEmployee('${employee.id}')">編輯</button><button type="button" class="small-btn" data-action="open-permission-editor" data-id="${employee.id}">權限</button><button type="button" class="small-btn delete-btn" onclick="deleteEmployee('${employee.id}')">刪除</button></div>` : ""}
                               </div>
                               </div>
                             </div>
@@ -5399,15 +5397,16 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     permissionEditorBackdrop?.classList.remove("hidden");
   }
 
-    if (permissionsEmployeeList) {
-    permissionsEmployeeList.addEventListener("click", function (event) {
-      const target = event.target.closest('button[data-action="open-permission-editor"]');
-      if (!target) return;
-      openPermissionEditor(target.dataset.id || "");
-    });
+    function handlePermissionEditorOpenClick(event) {
+    const target = event.target.closest('button[data-action="open-permission-editor"]');
+    if (!target) return;
+    openPermissionEditor(target.dataset.id || "");
   }
 
-      if (permLeaveApproveInput) permLeaveApproveInput.addEventListener("change", updatePermissionEditorLeaveScopeVisibility);
+  if (employeeList) employeeList.addEventListener("click", handlePermissionEditorOpenClick);
+  if (permissionsEmployeeList) permissionsEmployeeList.addEventListener("click", handlePermissionEditorOpenClick);
+
+  if (permLeaveApproveInput) permLeaveApproveInput.addEventListener("change", updatePermissionEditorLeaveScopeVisibility);
   if (permissionEditorCloseBtn) permissionEditorCloseBtn.addEventListener("click", closePermissionEditor);
   if (permissionEditorBackdrop) {
     permissionEditorBackdrop.addEventListener("click", function (event) {
@@ -5468,7 +5467,9 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       employees = employees.map((item) => item.id === editingPermissionEmployeeId
         ? { ...item, permissions: nextPermissions, shifts: nextShifts, weekendsOff: Boolean(permWeekendsOffInput?.checked), showOnLeaveBoard: Boolean(permShowOnLeaveBoardInput?.checked), manageScopes: nextManageScopes, scheduleScopes: nextScheduleScopes }
         : item);
+      currentUser = findUserBySession(buildUserSession(currentUser)) || currentUser;
       renderEmployees();
+      updateMenuPermissions(currentUser);
       try {
         if (db) {
           await updateDoc(doc(db, "employees", editingPermissionEmployeeId), {
