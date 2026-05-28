@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>班表系統-1</title>
+  <title>班表系統-2</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#1d4ed8" />
@@ -325,7 +325,15 @@
             </div>
             <div class="permission-editor-section">
               <h5>【排程表】</h5>
-              <p class="helper-text">目前無額外設定。</p>
+             <p class="helper-text">請勾選此人員可查看或編輯的排程部門；可編輯部門會自動包含查看權限。</p>
+              <div class="field-label">
+                <span>可查看地區 / 部門</span>
+                <div id="perm-schedule-view-region-departments" class="scope-region-department-list" role="group" aria-label="權限編輯可查看排程地區與部門"></div>
+              </div>
+              <div class="field-label">
+                <span>可編輯地區 / 部門</span>
+                <div id="perm-schedule-edit-region-departments" class="scope-region-department-list" role="group" aria-label="權限編輯可編輯排程地區與部門"></div>
+              </div>
             </div>
             <div class="permission-editor-section">
               <h5>【當日上班人員】</h5>
