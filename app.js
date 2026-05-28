@@ -1152,6 +1152,7 @@ document.addEventListener("DOMContentLoaded", function () {
   
   const coordinateMenuBtn = document.getElementById("menu-coordinate-btn");
   const permissionsMenuBtn = document.getElementById("menu-permissions-btn");
+  const permissionsDivider = document.getElementById("menu-permissions-divider");
   const shiftSettingsMenuBtn = document.getElementById("menu-shift-settings-btn");
   const monthlySummaryMenuBtn = document.getElementById("menu-monthly-summary-btn");
   const attendanceMenuBtn = document.getElementById("menu-attendance-btn");
@@ -1306,6 +1307,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (attendanceMenuBtn) {
       attendanceMenuBtn.classList.toggle("hidden", !allowShiftAttendance);
+    }
+    if (permissionsDivider) {
+      const hasPermissionMenuItems = allowShiftSettings || allowMonthlySummary || allowShiftAttendance || canManageCoordinates(user);
+      permissionsDivider.classList.toggle("hidden", !hasPermissionMenuItems);
     }
     if (openScheduleCreateBtn) {
       openScheduleCreateBtn.classList.toggle("hidden", !canEditAnySchedule(user));
