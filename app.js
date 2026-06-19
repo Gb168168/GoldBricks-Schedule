@@ -15,10 +15,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const REGIONS = ["新竹區", "台中區", "嘉義區"];
-const DEPARTMENTS = ["管理部", "TSE", "FAE", "新場", "倉管", "RD", "線上客服"];
+const TAICHUNG_DEPARTMENT_ORDER = ["管理部", "TSE", "FAE", "新場", "倉管", "RD", "線上客服"];
+const DEPARTMENTS = [...TAICHUNG_DEPARTMENT_ORDER];
 const REGION_DEPARTMENT_DEFAULTS = {
   新竹區: ["FAE"],
-  台中區: ["管理部", "倉管", "TSE", "RD", "FAE", "線上客服", "新場"],
+  台中區: [...TAICHUNG_DEPARTMENT_ORDER],
   嘉義區: ["FAE"]
 };
 const LEAVE_TYPE_GROUPS = [
