@@ -670,7 +670,19 @@ function getUserPasswordCandidates(user) {
     .map(normalizePasswordValue)
     .filter(Boolean);
 
-  const candidates = [explicitPassword, ...fallbackCandidates].filter(Boolean);
+  const builtinUser = users.find(function (builtinEmployee) {
+    const builtinKeys = getEmployeeMergeKeys(builtinEmployee);
+    return getEmployeeMergeKeys(user).some(function (key) {
+      return builtinKeys.includes(key);
+    });
+  });
+  const builtinPasswordCandidates = builtinUser && builtinUser !== user
+    ? [builtinUser.password, builtinUser.employeeId, builtinUser.account]
+      .map(normalizePasswordValue)
+      .filter(Boolean)
+    : [];
+
+  const candidates = [explicitPassword, ...fallbackCandidates, ...builtinPasswordCandidates].filter(Boolean);
   return Array.from(new Set(candidates));
 }
 
@@ -685,7 +697,7 @@ function isLoginEligible(user) {
 
 function getLoginIdentifiers(user) {
   const composedEmail = user?.email || (user?.emailPrefix ? `${String(user.emailPrefix).trim()}@goldbricks.com.tw` : "");
-  return [user?.employeeId, user?.account, user?.id, user?.email, composedEmail]
+  return [user?.employeeId, user?.account, user?.name, user?.id, user?.email, composedEmail]
     .map(normalizeLoginValue)
     .filter(Boolean);
 }
@@ -742,7 +754,7 @@ function getLoginFailureMessage(employeeId, password) {
   }
 
   if (!normalizedEmployeeId) {
-    return "請輸入帳號（employeeId / account / email）。";
+    return "請輸入帳號（員工編號 / account / 姓名 / email）。";
   }
 
   if (!normalizedPassword) {
@@ -755,7 +767,7 @@ function getLoginFailureMessage(employeeId, password) {
   });
 
   if (!matchedByIdentifier) {
-    return "找不到此帳號，請確認 employeeId / account / email 是否輸入正確。";
+    return "找不到此帳號，請確認員工編號 / account / 姓名 / email 是否輸入正確。";
   }
 
   if (!isLoginEligible(matchedByIdentifier)) {
