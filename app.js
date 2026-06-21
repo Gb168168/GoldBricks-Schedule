@@ -4573,22 +4573,34 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
 
   function setLoggedInUser(user) {
     currentUser = user;
-    updateUserInfo(user);
-    populateScheduleFilters();
-    applyDefaultScheduleFiltersByUser(user);
-    applyDefaultLeaveFiltersByUser(user);
     if (loginPage) loginPage.classList.add("hidden");
     if (mainPage) mainPage.classList.remove("hidden");
     persistCurrentUserSession(user);
     updateMenuPermissions(user);
-    activatePage("home", { collapseSidebar: false });
-    toggleEmployeeManagementUI();
-    refreshAttendanceSettings();
-    renderLeaves();
-    renderLeaveBoard();
-    renderSchedules();
-    renderCoordinates();
-    initMessaging();
+    
+    const postLoginSteps = [
+      ["更新登入者資訊", function () { updateUserInfo(user); }],
+      ["載入排程篩選", function () { populateScheduleFilters(); }],
+      ["套用排程預設篩選", function () { applyDefaultScheduleFiltersByUser(user); }],
+      ["套用休假預設篩選", function () { applyDefaultLeaveFiltersByUser(user); }],
+      ["更新權限選單", function () { updateMenuPermissions(user); }],
+      ["切換首頁", function () { activatePage("home", { collapseSidebar: false }); }],
+      ["更新員工管理介面", function () { toggleEmployeeManagementUI(); }],
+      ["更新打卡設定", function () { refreshAttendanceSettings(); }],
+      ["渲染請假清單", function () { renderLeaves(); }],
+      ["渲染休假表", function () { renderLeaveBoard(); }],
+      ["渲染排程表", function () { renderSchedules(); }],
+      ["渲染打卡座標", function () { renderCoordinates(); }],
+      ["初始化推播", function () { initMessaging(); }]
+    ];
+
+    postLoginSteps.forEach(function ([stepName, step]) {
+      try {
+        step();
+      } catch (error) {
+        console.error(`登入後步驟失敗：${stepName}`, error);
+      }
+    });
   }
 
   function restoreLogin() {
