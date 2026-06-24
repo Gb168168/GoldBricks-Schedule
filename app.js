@@ -15,7 +15,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const REGIONS = ["新竹區", "台中區", "嘉義區"];
-const TAICHUNG_DEPARTMENT_ORDER = ["管理部", "TSE", "FAE", "新場", "倉管", "RD", "線上客服"];
+const TAICHUNG_DEPARTMENT_ORDER = ["管理部", "TSE", "FAE", "新場", "倉管", "RD", "線上客服", "Rakuten"];
 const DEPARTMENTS = [...TAICHUNG_DEPARTMENT_ORDER];
 const REGION_DEPARTMENT_DEFAULTS = {
   新竹區: ["FAE"],
@@ -985,7 +985,7 @@ function getEmployeeRoleProfile(employeeId = "") {
     manageScopes: isSuperAdmin
       ? {
           regions: ["新竹區", "台中區", "嘉義區"],
-          departments: ["管理部", "TSE", "FAE", "新場", "倉管", "RD", "線上客服"]
+          departments: ["管理部", "TSE", "FAE", "新場", "倉管", "RD", "線上客服", "Rakuten"]
         }
       : { regions: [], departments: [] }
   };
