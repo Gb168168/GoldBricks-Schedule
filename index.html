@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMNIPLAY 客服系統-6</title>
+  <title>OMNIPLAY 客服系統-7</title>
   <style>
     :root {
       --bg: #eef3f9;
@@ -655,8 +655,36 @@
     const firebaseApp = firebaseConfig ? initializeApp(firebaseConfig) : null;
     const db = firebaseApp ? getFirestore(firebaseApp) : null;
     const employeesCollection = db ? collection(db, 'employees') : null;
+    const LOCAL_EMPLOYEES_STORAGE_KEY = 'goldbricks_employees_local';
     let employeeRecords = [];
     let editingEmployeeId = '';
+
+    const loadLocalEmployeeRecords = () => {
+      try {
+        const savedRecords = JSON.parse(localStorage.getItem(LOCAL_EMPLOYEES_STORAGE_KEY) || 'null');
+        if (Array.isArray(savedRecords)) {
+          return savedRecords.map((record, index) => normalizeEmployeeRecord({ id: record.id || `local-${Date.now()}-${index}`, ...record }));
+        }
+      } catch (error) {
+        console.warn('讀取本機人員資料失敗，改用預設帳號。', error);
+      }
+      return DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `local-default-${index}`, ...record }));
+    };
+
+    const saveLocalEmployeeRecords = () => {
+      try {
+        localStorage.setItem(LOCAL_EMPLOYEES_STORAGE_KEY, JSON.stringify(employeeRecords.map(({ id, name, code, account, password }) => ({ id, name, code, account, password }))));
+      } catch (error) {
+        console.warn('儲存本機人員資料失敗。', error);
+        alert('本機儲存空間無法寫入，人員資料可能無法保留。');
+      }
+    };
+
+    const useLocalEmployeeRecords = (message = '尚未設定 Firebase，已改用此瀏覽器本機儲存人員資料。') => {
+      employeeRecords = loadLocalEmployeeRecords();
+      renderEmployeeRecords();
+      setFirebaseStatus(message);
+    };
 
     const setFirebaseStatus = (message) => {
       if (firebaseStatus) firebaseStatus.textContent = message;
@@ -713,9 +741,14 @@
         deleteButton.type = 'button';
         deleteButton.textContent = '刪除';
         deleteButton.addEventListener('click', async () => {
-          if (!db || !employee.id) return alert('Firebase Firestore 尚未連線，無法刪除人員資料。');
           if (!confirm(`確定要刪除 ${employee.name} 的人員資料嗎？`)) return;
-          await deleteDoc(doc(db, 'employees', employee.id));
+          if (db && employee.id) {
+            await deleteDoc(doc(db, 'employees', employee.id));
+          } else {
+            employeeRecords = employeeRecords.filter((item) => item.id !== employee.id);
+            saveLocalEmployeeRecords();
+            renderEmployeeRecords();
+          }
           resetEmployeeFormMode();
         });
         actionWrap.append(editButton, deleteButton);
@@ -727,11 +760,8 @@
     };
 
     const startEmployeesListener = () => {
-      employeeRecords = DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `default-${index}`, ...record }));
-      renderEmployeeRecords();
-      
       if (!db || !employeesCollection) {
-        setFirebaseStatus('尚未設定 Firebase，請先在 window.__FIREBASE_CONFIG__ 放入專案設定。');
+        useLocalEmployeeRecords();
         return;
       }
 
@@ -746,9 +776,7 @@
         renderEmployeeRecords();
       }, (error) => {
         console.error('同步 Firestore 人員資料失敗', error);
-        employeeRecords = DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `default-${index}`, ...record }));
-        renderEmployeeRecords();
-        setFirebaseStatus('Firestore 同步失敗，已改用內建帳號登入。請檢查 Firebase 設定與安全規則。');
+        useLocalEmployeeRecords('Firestore 同步失敗，已改用此瀏覽器本機儲存人員資料。請檢查 Firebase 設定與安全規則。');
       });
     };
 
@@ -877,7 +905,6 @@
 
     employeeManagementForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (!db || !employeesCollection) return alert('Firebase Firestore 尚未連線，無法儲存人員資料。請先設定 window.__FIREBASE_CONFIG__。');
       const formData = new FormData(employeeManagementForm);
       const nextRecord = {
         name: formData.get('staffName').trim(),
@@ -891,11 +918,20 @@
         alert('此帳號已存在，請使用不同帳號。');
         return;
       }
-      if (editingEmployeeId) {
-        await updateDoc(doc(db, 'employees', editingEmployeeId), nextRecord);
+      if (db && employeesCollection) {
+        if (editingEmployeeId) {
+          await updateDoc(doc(db, 'employees', editingEmployeeId), nextRecord);
+        } else {
+          await addDoc(employeesCollection, { ...nextRecord, createdAt: serverTimestamp() });
+        }
+      } else if (editingEmployeeId) {
+        employeeRecords = employeeRecords.map((employee) => (employee.id === editingEmployeeId ? { ...employee, ...nextRecord } : employee));
+        saveLocalEmployeeRecords();
+        renderEmployeeRecords();
       } else {
-        await addDoc(employeesCollection, { ...nextRecord, createdAt: serverTimestamp() });
-        employeeRecords.push(nextRecord);
+        employeeRecords.push({ id: `local-${Date.now()}`, ...nextRecord });
+        saveLocalEmployeeRecords();
+        renderEmployeeRecords();
       }
       resetEmployeeFormMode();
     });
