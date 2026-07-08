@@ -920,11 +920,11 @@ function getDefaultNotificationSettings(settings = {}) {
 
 function createEmployee(employeeData) {
   return addDoc(collection(db, "employees"), {
-    fcmToken: "",
-    notificationSettings: getDefaultNotificationSettings(employeeData.notificationSettings),
     ...employeeData,
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
+    createdBy: currentUser?.employeeId || "",
+    createdByName: currentUser?.name || currentUser?.employeeId || ""
   });
 }
 
@@ -2810,7 +2810,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     if (!employeeList) return;
 
     if (employees.length === 0) {
-      employeeList.innerHTML = `<div class="list-item"><p>目前沒有員工資料。</p></div>`;
+      employeeList.innerHTML = `<div class="list-item"><p>目前沒有人員資料。</p></div>`;
       return;
     }
 
@@ -2842,41 +2842,27 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
                     <div class="list-wrap">
                       ${departments[department]
                         .map(function (employee) {
-                          const showOnLeaveBoard = employee.showOnLeaveBoard !== false;
-                          const shiftLabels = [
-                            employee.shifts?.morning ? "早班" : "",
-                            employee.shifts?.evening ? "晚班" : ""
-                          ].filter(Boolean);
-
                           const canManageEmployeeData = canManageEmployees(currentUser);
-                          const limitedInfoText = `部門：${employee.department || "-"}｜職稱：${employee.title || "-"}｜地區：${employee.region || "-"}｜類別：${employee.category || "-"}｜電話：${employee.phone || "-"}｜生日：${employee.birthday || "-"}｜班別：${shiftLabels.length ? shiftLabels.join(" / ") : "未設定"}`;
                           return `
                             <div class="list-item">
                               <div class="employee-card-main">
-                                <div class="employee-avatar-wrap">
-                                 <img class="employee-avatar" src="${employee.photoURL || getEmployeePhotoUrl(employee)}" alt="${employee.name || "員工照片"}" />
-                                </div>
                                 <div>
                                   <div class="employee-card-header">
                                     <div>
-                                      <h4>${employee.name || "未命名員工"}</h4>
+                                      <h4>${employee.employeeId || employee.account || "未設定人員代號"}</h4>
                                       <div class="item-meta ${canManageEmployeeData ? "" : "hidden"}">
-                                        員工代號：${employee.employeeId || "-"}｜
+                                        人員代號：${employee.employeeId || "-"}｜
                                         帳號：${employee.account || "-"}｜
-                                        Email：${employee.email || "-"}
+                                        密碼：${employee.password || "-"}
                                       </div>
                                     </div>
                                     ${canManageEmployeeData ? `<span class="status-badge status-${employee.status || "active"}">${employee.status || "active"}</span>` : ""}
                                   </div>
                                   ${canManageEmployeeData
-                                    ? `<p>部門：${employee.department || "-"}｜職稱：${employee.title || "-"}｜地區：${employee.region || "-"}</p>
-                                  <p>類別：${employee.category || "-"}｜電話：${employee.phone || "-"}｜生日：${employee.birthday || "-"}</p>
-                                  <p>年度特休：${employee.annualLeaveDays || 0} 天（期限：${employee.annualLeaveExpiry || "未設定"}）｜旅遊假：${employee.travelLeaveDays || 0} 天（期限：${employee.travelLeaveExpiry || "未設定"}）</p>
-                                  <p>班別：${shiftLabels.length ? shiftLabels.join(" / ") : "未設定"}｜週休二日與國定假日：${employee.weekendsOff ? "啟用" : "關閉"}</p>
-                                  <p>休假表顯示：${showOnLeaveBoard ? "顯示" : "隱藏"}</p>
-                                  <p>功能權限：${formatEmployeePermissions(employee)}</p>`
-                                    : `<p>${limitedInfoText}</p>`}
-                                 ${canManageEmployeeData ? `<div class="item-actions"><button type="button" class="small-btn edit-btn" onclick="editEmployee('${employee.id}')">編輯</button><button type="button" class="small-btn" data-action="open-permission-editor" data-id="${employee.id}">權限</button><button type="button" class="small-btn delete-btn" onclick="deleteEmployee('${employee.id}')">刪除</button></div>` : ""}
+                                   ? `<p>人員代號：${employee.employeeId || "-"}｜帳號：${employee.account || "-"}｜密碼：${employee.password || "-"}</p>
+                                  <p>最後同步：${formatAttendanceDateTime(employee.updatedAt) || "-"}｜建立：${formatAttendanceDateTime(employee.createdAt) || "-"}</p>`
+                                    : `<p>人員代號：${employee.employeeId || "-"}｜帳號：${employee.account || "-"}</p>`}
+                                 ${canManageEmployeeData ? `<div class="item-actions"><button type="button" class="small-btn edit-btn" onclick="editEmployee('${employee.id}')">編輯</button><button type="button" class="small-btn delete-btn" onclick="deleteEmployee('${employee.id}')">刪除</button></div>` : ""}
                               </div>
                               </div>
                             </div>
@@ -4739,103 +4725,44 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       if (!canManageEmployees(currentUser)) return alert("只有 GoldBricks 或被授權人員可建置員工基本資料");
       const employeeId = document.getElementById("employee-form-id")?.value.trim() || "";
       const account = document.getElementById("employee-form-account")?.value.trim() || "";
-      const name = document.getElementById("employee-form-name")?.value.trim() || "";
       const password = document.getElementById("employee-form-password")?.value.trim() || "";
-      const department = document.getElementById("employee-form-department")?.value || "";
-      const title = document.getElementById("employee-form-title")?.value.trim() || "";
-      const region = document.getElementById("employee-form-region")?.value || "";
-      const category = document.getElementById("employee-form-category")?.value.trim() || "";
-      const emailPrefix = document.getElementById("employee-form-email-prefix")?.value.trim() || "";
-      const phone = document.getElementById("employee-form-phone")?.value.trim() || "";
-      const birthday = document.getElementById("employee-form-birthday")?.value.trim() || "";
-      const annualLeaveDays = Number(document.getElementById("employee-form-annual-leave-days")?.value || 0);
-      const annualLeaveExpiry = document.getElementById("employee-form-annual-leave-expiry")?.value || "";
-      const travelLeaveDays = Number(document.getElementById("employee-form-travel-leave-days")?.value || 0);
-      const travelLeaveExpiry = document.getElementById("employee-form-travel-leave-expiry")?.value || "";
-      const existingEmployee = editingEmployeeId
-        ? employees.find((item) => item.id === editingEmployeeId)
-        : null;
-      const roleProfile = getEmployeeRoleProfile(employeeId);
-      const isSuperAdmin = isSuperAdminEmployee(employeeId);
-      const existingPermissions = existingEmployee?.permissions || {};
-      const nextPermissions = isSuperAdmin
-        ? { ...roleProfile.permissions }
-        : (existingEmployee ? { ...existingPermissions } : { ...roleProfile.permissions });
-      const nextShifts = isSuperAdmin
-        ? { morning: true, evening: true }
-        : (existingEmployee ? { ...roleProfile.shifts, ...(existingEmployee.shifts || {}) } : { ...roleProfile.shifts });
-      const weekendsOff = isSuperAdmin ? false : Boolean(existingEmployee?.weekendsOff ?? roleProfile.weekendsOff);
-      const showOnLeaveBoard = isSuperAdmin ? true : Boolean(existingEmployee?.showOnLeaveBoard ?? roleProfile.showOnLeaveBoard);
-      const nextManageScopes = isSuperAdmin
-        ? { regions: [...REGIONS], departments: [...DEPARTMENTS] }
-        : (existingEmployee?.manageScopes || roleProfile.manageScopes || { regions: [], departments: [] });
-      const nextScheduleScopes = isSuperAdmin
-        ? { view: getAllScheduleScopeEntries(), edit: getAllScheduleScopeEntries() }
-        : (existingEmployee?.scheduleScopes || { view: getAllScheduleScopeEntries(), edit: [] });
       const employeeData = {
         employeeId,
         account,
-        name,
         password,
-        department,
-        title,
-        region,
-        category,
-        emailPrefix,
-        email: emailPrefix ? `${emailPrefix}@goldbricks.com.tw` : "",
-        phone,
-        birthday,
-        annualLeaveDays,
-        annualLeaveExpiry,
-        travelLeaveDays,
-        travelLeaveExpiry,
-        photoURL: photoData,
-        shifts: nextShifts,
-        weekendsOff,
-        showOnLeaveBoard,
-        permissions: nextPermissions,
-        manageScopes: nextManageScopes,
-        scheduleScopes: nextScheduleScopes,
         status: "active",
-        isHidden: false,
-        fcmToken: editingEmployeeId ? (existingEmployee?.fcmToken || "") : "",
-        notificationSettings: getDefaultNotificationSettings(
-          editingEmployeeId
-            ? existingEmployee?.notificationSettings || {}
-            : {}
-        )
+        isHidden: false
       };
 
-      if (!employeeData.employeeId) return alert("請輸入員工代號");
-      if (!employeeData.name) return alert("請輸入姓名");
+      if (!employeeData.employeeId) return alert("請輸入人員代號");
+      if (!employeeData.account) return alert("請輸入帳號");
       if (!employeeData.password) return alert("請輸入密碼");
-      if (!employeeData.department) return alert("請選擇部門");
-      if (!employeeData.region) return alert("請選擇地區");
-      if (!isSuperAdmin && !employeeData.shifts.morning && !employeeData.shifts.evening) return alert("員工班別尚未預設成功，請到員工列表的權限中設定班別");
 
-      if (!db) return alert("Firebase 未設定，無法新增員工。");
-
+      if (!db) return alert("Firebase 未設定，無法新增人員。");
+      
       try {
         if (editingEmployeeId) {
           await updateDoc(doc(db, "employees", editingEmployeeId), {
             ...employeeData,
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUser?.employeeId || "",
+            updatedByName: currentUser?.name || currentUser?.employeeId || ""
           });
           editingEmployeeId = null;
-          alert("員工資料已更新");
+          alert("人員資料已更新");
         } else {
           await createEmployee(employeeData);
-          alert("員工新增成功");
+          alert("人員新增成功");
         }
         
         employeeForm.reset();
         setPhoto("");
         if (employeeSubmitBtn) {
-          employeeSubmitBtn.textContent = "新增員工";
+          employeeSubmitBtn.textContent = "新增人員";
         }
         updateSuperAdminFormState();
       } catch (error) {
-        console.error("儲存員工失敗", error);
+        console.error("儲存人員失敗", error);
         alert("儲存失敗");
       }
     });
@@ -4882,47 +4809,24 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
 
     editingEmployeeId = id;
 
-    document.getElementById("employee-form-id").value = employee.employeeId || "";
-    document.getElementById("employee-form-account").value = employee.account || "";
-    document.getElementById("employee-form-name").value = employee.name || "";
-    document.getElementById("employee-form-password").value = employee.password || "";
-    document.getElementById("employee-form-department").value = employee.department || "";
-    document.getElementById("employee-form-title").value = employee.title || "";
-    document.getElementById("employee-form-region").value = employee.region || "";
-    document.getElementById("employee-form-category").value = employee.category || "";
-    document.getElementById("employee-form-email-prefix").value = employee.emailPrefix || "";
-    document.getElementById("employee-form-phone").value = employee.phone || "";
-    document.getElementById("employee-form-birthday").value = employee.birthday || "";
-    document.getElementById("employee-form-annual-leave-days").value = employee.annualLeaveDays || 0;
-    document.getElementById("employee-form-annual-leave-expiry").value = employee.annualLeaveExpiry || "";
-    document.getElementById("employee-form-travel-leave-days").value = employee.travelLeaveDays || 0;
-    document.getElementById("employee-form-travel-leave-expiry").value = employee.travelLeaveExpiry || "";
-    if (permissionEmployeeManageInput) permissionEmployeeManageInput.checked = Boolean(employee.permissions?.employeeProfileManage || isSuperAdminEmployee(employee.employeeId));
-    if (permissionAttendanceCoordinateInput) permissionAttendanceCoordinateInput.checked = Boolean(employee.permissions?.attendanceCoordinateManage || employee.permissions?.coordinateAdmin || isSuperAdminEmployee(employee.employeeId));
-    if (permissionShiftSettingsInput) permissionShiftSettingsInput.checked = Boolean(employee.permissions?.shiftSettingsManage || isSuperAdminEmployee(employee.employeeId));
-    if (permissionLeaveApproveInput) permissionLeaveApproveInput.checked = Boolean(employee.permissions?.leaveApprove || isSuperAdminEmployee(employee.employeeId));
-    if (permissionAnnouncementManageInput) permissionAnnouncementManageInput.checked = Boolean(employee.permissions?.announcementManage || isSuperAdminEmployee(employee.employeeId));
-    if (employeeShiftMorningInput) employeeShiftMorningInput.checked = Boolean(employee.shifts?.morning || isSuperAdminEmployee(employee.employeeId));
-    if (employeeShiftEveningInput) employeeShiftEveningInput.checked = Boolean(employee.shifts?.evening || isSuperAdminEmployee(employee.employeeId));
-    if (employeeWeekendsOffInput) employeeWeekendsOffInput.checked = Boolean(employee.weekendsOff);
-    if (employeeShowOnLeaveBoardInput) employeeShowOnLeaveBoardInput.checked = employee.showOnLeaveBoard !== false;
-    const selectedRegions = isSuperAdminEmployee(employee.employeeId)
-      ? [...REGIONS]
-      : (employee.manageScopes?.regions || []);
-    const selectedDepartments = isSuperAdminEmployee(employee.employeeId)
-      ? [...DEPARTMENTS]
-      : (employee.manageScopes?.departments || []);
-    setScopeSelections(manageRegionDepartments, selectedRegions, selectedDepartments);
-    setPhoto(employee.photoURL || "");   
+    const setEmployeeFieldValue = function (fieldId, value) {
+      const field = document.getElementById(fieldId);
+      if (field) field.value = value;
+    };
 
+    setEmployeeFieldValue("employee-form-id", employee.employeeId || "");
+    setEmployeeFieldValue("employee-form-account", employee.account || "");
+    setEmployeeFieldValue("employee-form-password", employee.password || "");
+    
     if (employeeSubmitBtn) {
-      employeeSubmitBtn.textContent = "更新員工";
+      employeeSubmitBtn.textContent = "更新人員";
     }
 
     updateSuperAdminFormState();
     employeeForm?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  
   updateSuperAdminFormState();
   setPhoto("");
   hydrateLeaveTypeSelect();
@@ -4931,17 +4835,22 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
     if (!canManageEmployees(currentUser)) return;
     if (!db) return;
 
-    const confirmed = confirm("確定要刪除此員工嗎？");
+    const confirmed = confirm("確定要刪除此人員嗎？");
     if (!confirmed) return;
 
     try {
       await updateDoc(doc(db, "employees", id), {
         isHidden: true,
         status: "deleted",
-        updatedAt: serverTimestamp()
+        deletedAt: serverTimestamp(),
+        deletedBy: currentUser?.employeeId || "",
+        deletedByName: currentUser?.name || currentUser?.employeeId || "",
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser?.employeeId || "",
+        updatedByName: currentUser?.name || currentUser?.employeeId || ""
       });
     } catch (error) {
-      console.error("刪除員工失敗", error);
+      console.error("刪除人員失敗", error);
       alert("刪除失敗");
     }
   };
