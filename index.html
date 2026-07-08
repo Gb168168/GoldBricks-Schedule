@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMNIPLAY 客服系統-5</title>
+  <title>OMNIPLAY 客服系統-6</title>
   <style>
     :root {
       --bg: #eef3f9;
@@ -411,6 +411,32 @@
     .task-list li:first-child { border-top: 0; }
     .status { color: var(--success); font-weight: 800; }
 
+    
+    .leave-schedule-panel { display: grid; gap: 18px; }
+    .leave-controls { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; align-items: end; }
+    .leave-limit-control { width: min(220px, 100%); }
+    .leave-switch-label { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 999px; background: #f8fafc; }
+    .leave-legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-weight: 800; }
+    .leave-legend .black { color: #111827; }
+    .leave-legend .red { color: #ef4444; }
+    .leave-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+    .leave-schedule-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+    .leave-schedule-table th, .leave-schedule-table td { min-width: 46px; height: 40px; padding: 4px 6px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); text-align: center; vertical-align: middle; }
+    .leave-schedule-table th { position: sticky; top: 0; z-index: 2; background: #f8fafc; color: #0f172a; font-weight: 900; }
+    .leave-schedule-table .sticky-col { position: sticky; left: 0; z-index: 3; min-width: 64px; background: #fff; color: #0f254a; font-weight: 900; }
+    .leave-schedule-table .name-col { left: 64px; min-width: 92px; text-align: left; padding-left: 12px; }
+    .leave-schedule-table thead .sticky-col { z-index: 4; background: #f8fafc; text-align: center; }
+    .leave-schedule-table .weekend { background: #fff0bd; }
+    .leave-schedule-table .weekday { background: #f8fafc; color: #334155; font-size: 12px; font-weight: 700; }
+    .leave-schedule-table .symbol-black { color: #111827; font-size: 18px; font-weight: 900; }
+    .leave-schedule-table .symbol-red { color: #ef4444; font-size: 18px; font-weight: 900; }
+    .leave-schedule-table .event-symbol, .leave-schedule-table .phone-symbol { font-size: 18px; }
+    .leave-schedule-table .summary-col { min-width: 58px; font-weight: 900; background: #f8fafc; }
+    .leave-schedule-table .over-limit { color: #dc2626; background: #fee2e2; }
+    .leave-manpower-row th, .leave-manpower-row td { background: #eef2f7; font-weight: 900; }
+    .leave-day-button { width: 100%; min-height: 30px; padding: 0; border-radius: 8px; background: transparent; color: inherit; font-weight: 900; }
+    .leave-day-button:hover { background: rgba(37, 99, 235, .08); transform: none; }
+
     @media (max-width: 900px) {
       .login-card { grid-template-columns: 1fr; }
       .brand-panel, .login-form-wrap { padding: 36px; }
@@ -537,6 +563,36 @@
         <h2>人員處理</h2>
         <p class="page-placeholder">此頁面提供客服內部人員異動、處理紀錄與後續追蹤使用。可先由人員管理建立帳號，再於此頁規劃處理流程。</p>
       </section>
+      
+      <section class="content-card leave-schedule-panel" id="leaveSchedulePanel" hidden>
+        <div>
+          <h2>休假表</h2>
+          <p class="hint">點擊日期格可依序切換：黑色 ▲ 休假、紅色 ▲ 必休、🎰 公司活動、📱 值公務機、空白。🎰 不列入排休限制。</p>
+        </div>
+        <div class="leave-controls">
+          <div class="field leave-limit-control">
+            <label for="leaveLimitDays">限制排休天數</label>
+            <input id="leaveLimitDays" type="number" min="0" max="31" value="10" />
+          </div>
+          <label class="leave-switch-label" for="showPhoneDuty">
+            <input id="showPhoneDuty" type="checkbox" checked />
+            顯示 📱 值公務機
+          </label>
+          <div class="leave-legend" aria-label="休假表圖例">
+            <span><span class="black">▲</span> 休假</span>
+            <span><span class="red">▲</span> 必休</span>
+            <span>🎰 公司活動</span>
+            <span>📱 值公務機</span>
+          </div>
+        </div>
+        <div class="leave-table-wrap">
+          <table class="leave-schedule-table" aria-label="月休假排班表">
+            <thead id="leaveScheduleHead"></thead>
+            <tbody id="leaveScheduleBody"></tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </section>
 
@@ -588,6 +644,11 @@
     const employeeSubmitBtn = document.querySelector('#employeeSubmitBtn');
     const employeeCancelBtn = document.querySelector('#employeeCancelBtn');
     const staffHandlingPanel = document.querySelector('#staffHandlingPanel');
+    const leaveSchedulePanel = document.querySelector('#leaveSchedulePanel');
+    const leaveScheduleHead = document.querySelector('#leaveScheduleHead');
+    const leaveScheduleBody = document.querySelector('#leaveScheduleBody');
+    const leaveLimitDays = document.querySelector('#leaveLimitDays');
+    const showPhoneDuty = document.querySelector('#showPhoneDuty');
     const loginError = document.querySelector('#loginError');
     const firebaseStatus = document.querySelector('#firebaseStatus');
     const firebaseConfig = window.__FIREBASE_CONFIG__;
@@ -698,6 +759,51 @@
       employeeManagementForm.reset();
     };
 
+    
+
+    const leaveRoster = [
+      { shift: '早班', name: '佳臻', days: { 6: 'rest', 9: 'rest', 13: 'rest', 16: 'rest', 21: 'must', 22: 'must', 24: 'rest', 27: 'rest', 28: 'rest', 31: 'rest' } },
+      { shift: '早班', name: '茗雅', days: { 3: 'rest', 11: 'must', 12: 'rest', 18: 'rest', 19: 'must', 20: 'must', 25: 'rest', 26: 'rest', 29: 'phone' } },
+      { shift: '晚班', name: '澄希', days: { 3: 'rest', 7: 'rest', 10: 'must', 14: 'rest', 21: 'must', 22: 'must', 23: 'must', 24: 'must', 25: 'rest', 29: 'rest' } },
+      { shift: '晚班', name: '晴心', days: { 2: 'rest', 6: 'rest', 9: 'rest', 11: 'rest', 15: 'rest', 16: 'rest', 20: 'rest', 26: 'rest', 27: 'rest', 31: 'rest' } }
+    ];
+    const companyEventDays = new Set([4, 5, 12, 18, 19, 25, 26]);
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    const getCellSymbol = (type) => ({ rest: '<span class="symbol-black">▲</span>', must: '<span class="symbol-red">▲</span>', event: '<span class="event-symbol">🎰</span>', phone: '<span class="phone-symbol">📱</span>' }[type] || '');
+    const renderLeaveSchedule = () => {
+      if (!leaveScheduleHead || !leaveScheduleBody) return;
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const limit = Number(leaveLimitDays?.value || 0);
+      const showPhone = Boolean(showPhoneDuty?.checked);
+      const dayHeaders = Array.from({ length: daysInMonth }, (_, index) => {
+        const day = index + 1;
+        const date = new Date(year, month, day);
+        const isWeekend = [0, 6].includes(date.getDay());
+        return `<th class="${isWeekend ? 'weekend' : ''}">${day}<div class="weekday">(${weekdays[date.getDay()]})</div></th>`;
+      }).join('');
+      leaveScheduleHead.innerHTML = `<tr><th class="sticky-col">班別</th><th class="sticky-col name-col">姓名</th>${dayHeaders}<th class="summary-col">已排</th></tr>`;
+      const manpower = Array(daysInMonth).fill(0);
+      const rows = leaveRoster.map((person, rowIndex) => {
+        let scheduled = 0;
+        const cells = Array.from({ length: daysInMonth }, (_, index) => {
+          const day = index + 1;
+          const date = new Date(year, month, day);
+          const isWeekend = [0, 6].includes(date.getDay());
+          const personalType = person.days[day] || '';
+          const type = companyEventDays.has(day) && !personalType ? 'event' : personalType;
+          if (['rest', 'must', 'phone'].includes(type)) scheduled += 1;
+          if (type !== 'rest' && type !== 'must') manpower[index] += 1;
+          const displayType = type === 'phone' && !showPhone ? '' : type;
+          return `<td class="${isWeekend ? 'weekend' : ''}"><button type="button" class="leave-day-button" data-row="${rowIndex}" data-day="${day}" aria-label="${person.name} ${day} 日排班">${getCellSymbol(displayType)}</button></td>`;
+        }).join('');
+        const overLimit = scheduled > limit ? 'over-limit' : '';
+        return `<tr><td class="sticky-col">${person.shift}</td><td class="sticky-col name-col">${person.name}</td>${cells}<td class="summary-col ${overLimit}">${scheduled}</td></tr>`;
+      }).join('');
+      const manpowerRow = `<tr class="leave-manpower-row"><th class="sticky-col" colspan="2">上班人力</th>${manpower.map((count) => `<td>${count}</td>`).join('')}<td></td></tr>`;
+      leaveScheduleBody.innerHTML = rows + manpowerRow;
+    };
     const activateHome = () => {
       document.querySelectorAll('.submenu a, .home-link').forEach((anchor) => anchor.classList.remove('is-active'));
       homeLink.classList.add('is-active');
@@ -706,6 +812,7 @@
       homePanels.forEach((panel) => { panel.hidden = false; });
       employeeManagementPanel.hidden = true;
       staffHandlingPanel.hidden = true;
+      leaveSchedulePanel.hidden = true;
     };
 
     homeLink.addEventListener('click', (event) => {
@@ -739,11 +846,16 @@
           homePanels.forEach((panel) => { panel.hidden = true; });
           employeeManagementPanel.hidden = item !== '人員管理';
           staffHandlingPanel.hidden = item !== '人員處理';
+          leaveSchedulePanel.hidden = item !== '休假表';
           if (item === '人員管理') {
             pageDescription.textContent = '客服內部 / 人員管理：維護名字、代號、帳號與密碼，並同步 Firebase Firestore。';
           }
           if (item === '人員處理') {
             pageDescription.textContent = '客服內部 / 人員處理：追蹤人員異動與處理事項。';
+          }
+          if (item === '休假表') {
+            pageDescription.textContent = '客服內部 / 休假表：設定排休上限、必休、公司活動與值公務機顯示。';
+            renderLeaveSchedule();
           }
         });
         li.appendChild(link);
@@ -789,6 +901,28 @@
     });
 
     employeeCancelBtn.addEventListener('click', resetEmployeeFormMode);
+    leaveLimitDays?.addEventListener('input', renderLeaveSchedule);
+    showPhoneDuty?.addEventListener('change', renderLeaveSchedule);
+    leaveScheduleBody?.addEventListener('click', (event) => {
+      const button = event.target.closest('.leave-day-button');
+      if (!button) return;
+      const person = leaveRoster[Number(button.dataset.row)];
+      const day = Number(button.dataset.day);
+      if (!person || !day) return;
+      const current = person.days[day] || (companyEventDays.has(day) ? 'event' : '');
+      const order = ['', 'rest', 'must', 'event', 'phone'];
+      const next = order[(order.indexOf(current) + 1) % order.length];
+      if (next === 'event') {
+        companyEventDays.add(day);
+        delete person.days[day];
+      } else {
+        companyEventDays.delete(day);
+        if (next) person.days[day] = next;
+        else delete person.days[day];
+      }
+      renderLeaveSchedule();
+    });
+    renderLeaveSchedule();
     startEmployeesListener();
     
     loginForm.addEventListener('submit', (event) => {
