@@ -51,6 +51,24 @@ const LOCATION_CATEGORIES = {
 };
 const ATTENDANCE_TIMEZONE = "Asia/Shanghai";
 
+const REMOVED_FEATURE_FIRESTORE_COLLECTIONS = [
+  "announcements",
+  "leaveRequests",
+  "shiftSettings",
+  "shiftTemplates",
+  "employeeShiftSettings",
+  "shiftTemplateDeletes",
+  "attendanceRecords",
+  "attendanceLocations"
+];
+const DISABLED_FEATURES = {
+  announcements: true,
+  leaveRequests: true,
+  shiftSettings: true,
+  attendanceRecords: true,
+  attendanceLocations: true
+};
+
 const DEFAULT_ATTENDANCE_LOCATIONS = [
   { region: "新竹區", category: "office", name: "新竹辦公點", lat: 24.8039, lng: 120.9647, radiusMeters: 500, isActive: true, isHidden: false },
   { region: "台中區", category: "office", name: "台中辦公點", lat: 24.17779, lng: 120.713161, radiusMeters: 500, isActive: true, isHidden: false },
@@ -82,23 +100,14 @@ const users = [
     weekendsOff: false,
     permissions: {
       employeeProfileManage: true,
-      attendanceCoordinateManage: true,
-      shiftSettingsManage: true,
-      announcementManage: true,
-      leaveApprove: true,
       admin: true,
-      coordinateAdmin: true
     },
     manageScopes: {
       regions: [...REGIONS],
       departments: [...DEPARTMENTS]
     },
     fcmToken: "",
-    notificationSettings: {
-      announcement: true,
-      attendance: true,
-      leave: true
-    }
+    notificationSettings: {}
   },
   {
     employeeId: "GB250201",
@@ -122,11 +131,7 @@ const users = [
       departments: ["FAE"]
     },
     fcmToken: "",
-    notificationSettings: {
-      announcement: true,
-      attendance: true,
-      leave: true
-    }
+    notificationSettings: {}
   },
   {
     employeeId: "GB250901",
@@ -150,11 +155,7 @@ const users = [
       departments: ["FAE"]
     },
     fcmToken: "",
-    notificationSettings: {
-      announcement: true,
-      attendance: true,
-      leave: true
-    }
+    notificationSettings: {}
   },
   {
     employeeId: "GB251001",
@@ -178,11 +179,7 @@ const users = [
       departments: ["FAE"]
     },
     fcmToken: "",
-    notificationSettings: {
-      announcement: true,
-      attendance: true,
-      leave: true
-    }
+    notificationSettings: {}
   },
   {
     employeeId: "Rakuten",
@@ -206,11 +203,7 @@ const users = [
       departments: ["Rakuten"]
     },
     fcmToken: "",
-    notificationSettings: {
-      announcement: true,
-      attendance: true,
-      leave: true
-    }
+    notificationSettings: {}
   }
 ];
 
@@ -498,13 +491,7 @@ function canManageAllSchedules(user) {
 }
 
 function canViewShiftAndAttendance(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.attendanceCoordinateManage ||
-    user?.permissions?.attendanceListVisible ||
-    user?.permissions?.coordinateListVisible
-  );
+  return false;
 }
 
 function canViewTodayAttendanceStaff(user) {
@@ -512,52 +499,27 @@ function canViewTodayAttendanceStaff(user) {
 }
 
 function canManageAnnouncements(user) {
-  return Boolean(isGoldBricksUser(user) || user?.permissions?.admin || user?.permissions?.announcementManage);
+  return false;
 }
 
 function canEditAnnouncements(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.announcementManage ||
-    user?.permissions?.announcementEdit
-  );
+  return false;
 }
 
 function canDeleteAnnouncements(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.announcementManage ||
-    user?.permissions?.announcementDelete
-  );
+  return false;
 }
 
 function canHideAnnouncements(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.announcementManage ||
-    user?.permissions?.announcementHide
-  );
+  return false;
 }
 
 function canManageCoordinates(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.coordinateAdmin ||
-    user?.permissions?.attendanceCoordinateManage ||
-    user?.permissions?.coordinateListVisible
-  );
+  return false;
 }
 
 function canDeleteAttendanceRecords(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.attendanceRecordDelete
-  );
+  return false;
 }
 
 function canManageEmployees(user) {
@@ -569,12 +531,7 @@ function canManageEmployees(user) {
 }
 
 function canManageShiftSettings(user) {
-  return Boolean(
-    isGoldBricksUser(user) ||
-    user?.permissions?.admin ||
-    user?.permissions?.shiftSettingsManage ||
-    user?.permissions?.shiftSettingsListVisible
-  );
+  return false;
 }
 
 function canViewMonthlySummary(user) {
@@ -589,25 +546,20 @@ function normalizeEmployeePermissions(permissions = {}) {
   return {
     ...permissions,
     employeeProfileManage: Boolean(permissions.employeeProfileManage || permissions.personInfoBasicDataManage),
-    shiftSettingsManage: Boolean(permissions.shiftSettingsManage || permissions.shiftSettingsListVisible),
-    attendanceCoordinateManage: Boolean(permissions.attendanceCoordinateManage || permissions.coordinateListVisible || permissions.attendanceListVisible),
-    coordinateAdmin: Boolean(permissions.coordinateAdmin || permissions.attendanceCoordinateManage || permissions.coordinateListVisible),
-    leaveApprove: Boolean(permissions.leaveApprove),
-    announcementManage: Boolean(
-      permissions.announcementManage ||
-      permissions.announcementHide ||
-      permissions.announcementEdit ||
-      permissions.announcementDelete
-    ),
-    announcementHide: Boolean(permissions.announcementHide || permissions.announcementManage),
-    announcementEdit: Boolean(permissions.announcementEdit || permissions.announcementManage),
-    announcementDelete: Boolean(permissions.announcementDelete || permissions.announcementManage),
+    shiftSettingsManage: false,
+    attendanceCoordinateManage: false,
+    coordinateAdmin: false,
+    leaveApprove: false,
+    announcementManage: false,
+    announcementHide: false,
+    announcementEdit: false,
+    announcementDelete: false,
+    shiftSettingsListVisible: false,
+    attendanceListVisible: false,
+    attendanceRecordDelete: false,
+    coordinateListVisible: false,
     permissionsListVisible: Boolean(permissions.permissionsListVisible),
-    shiftSettingsListVisible: Boolean(permissions.shiftSettingsListVisible || permissions.shiftSettingsManage),
     monthlySummaryListVisible: Boolean(permissions.monthlySummaryListVisible),
-    attendanceListVisible: Boolean(permissions.attendanceListVisible || permissions.attendanceCoordinateManage || permissions.attendanceRecordDelete),
-    attendanceRecordDelete: Boolean(permissions.attendanceRecordDelete),
-    coordinateListVisible: Boolean(permissions.coordinateListVisible || permissions.attendanceCoordinateManage),
     personInfoBasicDataManage: Boolean(permissions.personInfoBasicDataManage || permissions.employeeProfileManage)
   };
 }
@@ -916,14 +868,8 @@ function formatEmployeePermissions(employee) {
   const tags = [];
   if (employee.permissions?.admin) tags.push("管理員");
   if (employee.permissions?.employeeProfileManage) tags.push("可建置員工資料");
-  if (employee.permissions?.attendanceListVisible) tags.push("打卡紀錄");
-  if (employee.permissions?.attendanceRecordDelete) tags.push("打卡紀錄刪除");
-  if (employee.permissions?.coordinateListVisible) tags.push("打卡座標");
-  if (employee.permissions?.shiftSettingsListVisible) tags.push("班別設定")
   if (employee.permissions?.monthlySummaryListVisible) tags.push("本月統計");
   if (employee.permissions?.permissionsListVisible) tags.push("權限功能");
-  if (employee.permissions?.leaveApprove) tags.push("可審核請假");
-  if (employee.permissions?.announcementManage) tags.push("公告管理");
   return tags.length > 0 ? tags.join("、") : "一般員工";
 }
 
@@ -944,16 +890,16 @@ function getEmployeeRoleProfile(employeeId = "") {
       admin: isSuperAdmin,
       employeeProfileManage: isSuperAdmin,
       personInfoBasicDataManage: isSuperAdmin,
-      attendanceCoordinateManage: isSuperAdmin,
-      attendanceListVisible: isSuperAdmin,
-      coordinateListVisible: isSuperAdmin,
-      shiftSettingsManage: isSuperAdmin,
-      shiftSettingsListVisible: isSuperAdmin,
+      attendanceCoordinateManage: false,
+      attendanceListVisible: false,
+      coordinateListVisible: false,
+      shiftSettingsManage: false,
+      shiftSettingsListVisible: false,
       monthlySummaryListVisible: isSuperAdmin,
       permissionsListVisible: isSuperAdmin,
-      leaveApprove: isSuperAdmin,
-      announcementManage: isSuperAdmin,
-      coordinateAdmin: isSuperAdmin
+      leaveApprove: false,
+      announcementManage: false,
+      coordinateAdmin: false
     },
     manageScopes: isSuperAdmin
       ? {
@@ -2011,6 +1957,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function startAttendanceLocationsListener() {
+    if (DISABLED_FEATURES.attendanceLocations) { attendanceLocations = []; return; }
     if (!db) {
       attendanceLocations = DEFAULT_ATTENDANCE_LOCATIONS.map((item, index) => ({ id: `default-${index}`, ...item }));
       renderCoordinates();
@@ -2062,6 +2009,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function handleClock(type) {
+    if (DISABLED_FEATURES.attendanceRecords || DISABLED_FEATURES.attendanceLocations) return alert("打卡功能已移除。");
     if (!currentUser) {
       alert("請先登入");
       return;
@@ -2526,6 +2474,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   }
 
     function startShiftSettingsListener() {
+    if (DISABLED_FEATURES.shiftSettings) { shiftSettings = []; shiftTemplates = []; employeeShiftSettings = []; refreshShiftSettingViews(); return; }
     const storedDeletedKeys = safeStorageGet("deleted_default_shift_template_keys");
     if (storedDeletedKeys) {
       try {
@@ -2573,6 +2522,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   }
 
   function startAttendanceRecordsListener() {
+    if (DISABLED_FEATURES.attendanceRecords) { attendanceRecords = []; renderAttendanceRecords(); return; }
     if (!db) return;
 
     const q = query(collection(db, "attendanceRecords"), orderBy("createdAtClient", "desc"));
@@ -3081,6 +3031,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   }
 
   function startAnnouncementsListener() {
+    if (DISABLED_FEATURES.announcements) { announcements = []; renderAnnouncements(); return; }
     if (!db) return;
     const q = query(collection(db, "announcements"), orderBy("createdAtClient", "desc"));
     onSnapshot(q, function (snapshot) {
@@ -3125,6 +3076,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
   }
 
   function startLeaveListener() {
+    if (DISABLED_FEATURES.leaveRequests) { leaveRequests = []; renderLeaves(); renderLeaveBoard(); renderMonthlySummary(); return; }
     if (!db) return;
     const q = query(collection(db, "leaveRequests"), orderBy("createdAtClient", "desc"));
     onSnapshot(q, function (snapshot) {
@@ -5734,7 +5686,7 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       const employee = employees.find((item) => item.id === editingPermissionEmployeeId);
       if (!employee) return;
       if (isSuperAdminEmployee(employee.employeeId)) return alert("最高權限帳號不需調整功能權限");
-      const leaveApproveEnabled = Boolean(permLeaveApproveInput?.checked);
+      const leaveApproveEnabled = false;
       const nextManageScopes = leaveApproveEnabled
         ? {
             regions: Array.from(new Set(getScopeSelections(permManageRegionDepartments).map((item) => item.region))).filter(Boolean),
@@ -5751,26 +5703,10 @@ attendanceSummaryList.innerHTML = `<div class="attendance-tree">${Object.keys(tr
       };
       const nextPermissions = normalizeEmployeePermissions({
         ...(employee.permissions || {}),
-        announcementHide: Boolean(permAnnouncementHideInput?.checked),
-        announcementEdit: Boolean(permAnnouncementEditInput?.checked),
-        announcementDelete: Boolean(permAnnouncementDeleteInput?.checked),
-        announcementManage: Boolean(
-          permAnnouncementHideInput?.checked ||
-          permAnnouncementEditInput?.checked ||
-          permAnnouncementDeleteInput?.checked
-        ),
         employeeProfileManage: Boolean(permEmployeeProfileManageInput?.checked),
         personInfoBasicDataManage: Boolean(permEmployeeProfileManageInput?.checked),
         permissionsListVisible: Boolean(permPermissionsListVisibleInput?.checked),
-        shiftSettingsListVisible: Boolean(permShiftSettingsListVisibleInput?.checked),
         monthlySummaryListVisible: Boolean(permMonthlySummaryListVisibleInput?.checked),
-        leaveApprove: leaveApproveEnabled,
-        attendanceListVisible: Boolean(permAttendanceListVisibleInput?.checked || permAttendanceRecordDeleteInput?.checked),
-        attendanceRecordDelete: Boolean(permAttendanceRecordDeleteInput?.checked),
-        coordinateListVisible: Boolean(permCoordinateListVisibleInput?.checked),
-        attendanceCoordinateManage: Boolean(permAttendanceListVisibleInput?.checked || permCoordinateListVisibleInput?.checked),
-        shiftSettingsManage: Boolean(permShiftSettingsListVisibleInput?.checked),
-        coordinateAdmin: Boolean(permCoordinateListVisibleInput?.checked)
       });
       const nextShifts = {
         morning: Boolean(permShiftMorningInput?.checked),
