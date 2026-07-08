@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>班表系統-2</title>
+  <title>班表系統-3</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#1d4ed8" />
@@ -38,17 +38,12 @@
 
       <nav class="menu">
         <button class="menu-btn active" data-page="home">首頁</button>
-        <button class="menu-btn" data-page="announcement">公告欄</button>
         <button class="menu-btn" data-page="staff">人員資訊</button>
         <button class="menu-btn" data-page="schedule">休假表</button>
         <button class="menu-btn" data-page="roster">排程表</button>
         <button class="menu-btn" data-page="today-staff">當日上班人員</button>
-        <button class="menu-btn" data-page="leave">請假申請</button>
         <div class="menu-divider" id="menu-permissions-divider" aria-hidden="true">--權限--</div>
-        <button class="menu-btn hidden" id="menu-shift-settings-btn" data-page="shift-settings">班別設定</button>
         <button class="menu-btn" id="menu-monthly-summary-btn" data-page="monthly-summary">本月統計</button>
-        <button class="menu-btn hidden" id="menu-attendance-btn" data-page="attendance">打卡紀錄</button>
-        <button class="menu-btn hidden" id="menu-coordinate-btn" data-page="coordinates">打卡座標</button>
       </nav>
     </aside>
 
@@ -69,89 +64,13 @@
       </header>
 
       <section id="page-home" class="page-section">
-        <div class="hero-card">
-          <div>
-            <h3>今日出勤打卡</h3>
-            <p id="today-shift-info">載入班別中...</p>
-          </div>
-          <div class="hero-card-actions">
-            <button id="clock-in-btn" type="button" class="primary-btn">上班打卡</button>
-            <button id="clock-out-btn" type="button" class="secondary-btn">下班打卡</button>
-          </div>
-        </div>
-
-        <div class="content-grid home-grid">
-           <div id="home-today-attendance-card" class="card">
-            <div class="section-header-row">
-              <div>
-                <h3>當日上班人員</h3>
-                <p class="helper-text">僅管理員可查看；點擊姓名可展開浮動視窗查看該員工今日打卡記錄。</p>
-              </div>
-            </div>
-            <div id="today-attendance-staff-list" class="list-wrap"></div>
-          </div>
-          
-           <div class="card attendance-card">
-            <div class="section-header-row">
-              <div>
-                <h3>出勤打卡</h3>
-                <p class="helper-text">系統會自動帶入今日班別；超出範圍可填寫原因後送出，逾時會自動標示遲到。</p>
-              </div>
-              <span id="attendance-status-badge" class="status-badge status-pending">待操作</span>
-            </div>
-
-            <div id="attendance-settings-summary" class="attendance-summary">
-              <p>尚未載入打卡資訊。</p>
-            </div>
-
-
-            <div id="attendance-result" class="attendance-result">
-              <p>尚未有打卡結果。</p>
-            </div>
-
-          </div>
-          
-        </div>
-      </section>
-
-      <section id="page-announcement" class="page-section hidden">
         <div class="card">
-          <h3>公告管理</h3>
-
-          <form id="announcement-form" class="form-grid">
-             <label class="field-label">
-              <span>公告標題</span>
-              <input id="announcement-title" type="text" required />
-            </label>
-            <label class="field-label">
-              <span>公告內容</span>
-              <textarea id="announcement-content" required></textarea>
-            </label>
-            <button type="submit" class="primary-btn">新增公告</button>
-          </form>
-
-          <div id="announcement-edit-box" class="edit-box hidden">
-            <h4>編輯公告</h4>
-            <form id="announcement-edit-form" class="form-grid">
-              <label class="field-label">
-                <span>公告標題</span>
-                <input id="announcement-edit-title" type="text" required />
-              </label>
-              <label class="field-label">
-                <span>公告內容</span>
-                <textarea id="announcement-edit-content" required></textarea>
-              </label>
-              <div class="item-actions">
-                <button type="submit" class="primary-btn">儲存修改</button>
-                <button type="button" id="announcement-cancel-edit" class="small-btn cancel-btn">取消編輯</button>
-              </div>
-            </form>
-          </div>
-
-          <div id="announcement-list" class="list-wrap"></div>
+          <h3>歡迎使用班表系統</h3>
+          <p class="helper-text">請從左側選單查看人員資訊、休假表、排程表與本月統計。</p>
         </div>
       </section>
 
+      
       <section id="page-roster" class="page-section hidden">
         <div class="card">
           <div class="section-header-row">
@@ -248,12 +167,6 @@
           </div>
           <p id="permission-editor-target" class="helper-text"></p>
           <form id="permission-editor-form" class="permission-editor-form">
-          <details class="permission-editor-section">
-              <summary><span>【公告欄】</span></summary>
-              <label class="field-label checkbox-inline"><span>隱藏</span><input id="perm-announcement-hide" type="checkbox" /></label>
-              <label class="field-label checkbox-inline"><span>編輯</span><input id="perm-announcement-edit" type="checkbox" /></label>
-              <label class="field-label checkbox-inline"><span>刪除</span><input id="perm-announcement-delete" type="checkbox" /></label>
-           </details>
             <details class="permission-editor-section">
               <summary><span>【休假表】</span></summary>
               <label class="field-label checkbox-inline"><span>早班</span><input id="perm-shift-morning" type="checkbox" /></label>
@@ -282,32 +195,9 @@
               <label class="field-label checkbox-inline"><span>左側列表顯示</span><input id="perm-permissions-list-visible" type="checkbox" /></label>
             </details>
             <details class="permission-editor-section">
-              <summary><span>【班別設定】</span></summary>
-              <label class="field-label checkbox-inline"><span>左側列表顯示</span><input id="perm-shift-settings-list-visible" type="checkbox" /></label>
-            </details>
-            <details class="permission-editor-section">
               <summary><span>【本月統計】</span></summary>
               <label class="field-label checkbox-inline"><span>左側列表顯示</span><input id="perm-monthly-summary-list-visible" type="checkbox" /></label>
            </details>
-            <details class="permission-editor-section">
-              <summary><span>【請假申請】</span></summary>
-              <label class="field-label checkbox-inline"><span>審核假別</span><input id="perm-leave-approve" type="checkbox" /></label>
-              <div id="permission-leave-approve-scope-box" class="scope-box hidden">
-                <div class="field-label">
-                <span>可審核地區 / 部門</span>
-                  <div id="perm-manage-region-departments" class="scope-region-department-list" role="group" aria-label="權限編輯可審核地區與部門"></div>
-                </div>
-              </div>
-           </details>
-            <details class="permission-editor-section">
-              <summary><span>【打卡紀錄】</span></summary>
-              <label class="field-label checkbox-inline"><span>左側列表顯示</span><input id="perm-attendance-list-visible" type="checkbox" /></label>
-              <label class="field-label checkbox-inline"><span>刪除</span><input id="perm-attendance-record-delete" type="checkbox" /></label>
-            </details>
-            <details class="permission-editor-section">
-              <summary><span>【打卡座標】</span></summary>
-              <label class="field-label checkbox-inline"><span>左側列表顯示</span><input id="perm-coordinate-list-visible" type="checkbox" /></label>
-            </details>
             <div class="item-actions">
               <button type="submit" class="primary-btn">儲存權限</button>
             </div>
@@ -315,34 +205,13 @@
         </div>
       </div>
       
-      <section id="page-leave" class="page-section hidden">
-        <div class="card">
-          <h3>請假管理</h3>
-
-          <div id="leave-stats" class="stats-grid"></div>
-
-          <form id="leave-form" class="leave-form-row">
-            <select id="leave-type" required>
-              <option value="特休">特休</option>
-              <option value="病假">病假</option>
-              <option value="事假">事假</option>
-            </select>
-            <input id="leave-start" type="date" required />
-            <input id="leave-end" type="date" required />
-            <textarea id="leave-reason" placeholder="請假原因" required></textarea>
-            <button type="submit" class="primary-btn">送出請假申請</button>
-          </form>
-
-          <div id="leave-list" class="list-wrap"></div>
-        </div>
-      </section>
 
       <section id="page-monthly-summary" class="page-section hidden">
         <div class="card">
           <div class="section-header-row">
             <div>
               <h3>本月統計</h3>
-              <p class="helper-text">統計休假表與請假申請總和，可查看各地區／部門／人員與剩餘假別。</p>
+              <p class="helper-text">統計休假表資料，可查看各地區／部門／人員與剩餘假別。</p>
             </div>
           </div>
           <div class="monthly-summary-toolbar">
@@ -369,134 +238,8 @@
       </section>
 
       
-      <section id="page-coordinates" class="page-section hidden">
-        <div class="card">
-          <div class="section-header-row">
-            <div>
-              <h3>打卡座標</h3>
-              <p class="helper-text">依地區管理內部座標與工作店家座標，支援新增、編輯、隱藏與刪除。</p>
-            </div>
-          </div>
 
-          <div id="coordinate-admin-disabled" class="attendance-result hidden">
-            <p>你目前沒有座標管理權限。</p>
-          </div>
-
-          <div id="coordinate-editor-card" class="edit-box hidden">
-            <h4 id="coordinate-editor-title">新增打卡座標</h4>
-            <form id="coordinate-form" class="form-grid">
-              <div class="two-column-grid">
-                <label class="field-label">
-                  <span>地區 region</span>
-                  <select id="coordinate-region" required></select>
-                </label>
-                <label class="field-label">
-                  <span>類型 category</span>
-                  <select id="coordinate-category" required>
-                    <option value="office">區域固定點</option>
-                    <option value="customer">工作店家</option>
-                  </select>
-                </label>
-                <label class="field-label">
-                  <span>名稱 name</span>
-                  <input id="coordinate-name" type="text" required />
-                </label>
-                <label class="field-label">
-                  <span>打卡半徑 radiusMeters</span>
-                  <input id="coordinate-radius" type="number" min="1" required />
-                </label>
-                <label class="field-label">
-                  <span>緯度 lat</span>
-                  <input id="coordinate-lat" type="number" step="any" required />
-                </label>
-                <label class="field-label">
-                  <span>經度 lng</span>
-                  <input id="coordinate-lng" type="number" step="any" required />
-                </label>
-              </div>
-              <label class="field-label checkbox-inline">
-                <span>啟用 isActive</span>
-                <input id="coordinate-is-active" type="checkbox" checked />
-              </label>
-              <div class="item-actions">
-                <button type="submit" class="primary-btn">儲存座標</button>
-                <button type="button" id="coordinate-cancel-btn" class="small-btn cancel-btn">取消</button>
-              </div>
-            </form>
-          </div>
-
-          <div id="coordinate-region-list" class="coordinate-region-list"></div>
-        </div>
-      </section>
-
-      <section id="page-shift-settings" class="page-section hidden">
-        <div class="content-grid staff-grid">
-          <div class="card">
-            <h3>班別設定</h3>
-            <p class="helper-text">管理員可設定上班、下班、提醒與最後打卡寬限時間。</p>
-            <form id="shift-settings-form" class="form-grid">
-              <div class="two-column-grid">
-                <label class="field-label"><span>設定層級</span><select id="shift-scope"><option value="template">部門預設</option><option value="employee">員工覆蓋</option></select></label>
-                <label class="field-label"><span>班別</span><select id="shift-code" required></select></label>
-                <label class="field-label"><span>地區</span><select id="shift-region" required></select></label>
-                <label class="field-label"><span>部門</span><select id="shift-department" required></select></label>
-                <label class="field-label"><span>員工</span><select id="shift-employee"></select></label>
-              </div>
-              <div class="two-column-grid">
-                <label class="field-label"><span>班別名稱</span><input id="shift-name" type="text" placeholder="選擇班別" required /></label>
-                <label class="field-label"><span>提醒時間</span><input id="shift-reminder-time" type="time" placeholder="選擇時間" required /></label>
-                <label class="field-label"><span>上班時間</span><input id="shift-start-time" type="time" placeholder="選擇時間" required /></label>
-                <label class="field-label"><span>下班時間</span><input id="shift-end-time" type="time" placeholder="選擇時間" required /></label>
-                <label class="field-label"><span>寬限分鐘數</span><input id="shift-grace-minutes" type="number" min="0" placeholder="設置分鐘" required /></label>
-                <label class="field-label checkbox-inline"><span>啟用班別</span><input id="shift-is-active" type="checkbox" checked /></label>
-              </div>
-              <button type="submit" class="primary-btn">儲存班別設定</button>
-            </form>
-          </div>
-          <div class="card">
-            <div class="section-header-row">
-              <div>
-                <h3>目前班別規則</h3>
-                <p class="helper-text">每筆班別會同步提供首頁打卡判定與站內提醒。</p>
-              </div>
-              <button type="button" id="shift-rules-reset-btn" class="small-btn danger-btn">清空所有班別規則時間</button>
-            </div>
-            <div id="shift-settings-list" class="list-wrap"></div>
-          </div>
-        </div>
-      </section>
       
-      <section id="page-attendance" class="page-section hidden">
-        <div class="card">
-          <div class="section-header-row">
-            <div>
-              <h3>打卡紀錄</h3>
-              <p class="helper-text">可依員工與日期查看每日上下班與工時。</p>
-            </div>
-          </div>
-
-                   <div class="form-section">
-            <div class="two-column-grid">
-              <label class="field-label">
-                <span>員工姓名</span>
-                <input id="attendance-filter-name" type="text" placeholder="輸入姓名，可留空" />
-              </label>
-
-              <label class="field-label">
-                <span>日期</span>
-                <input id="attendance-filter-date" type="date" />
-              </label>
-            </div>
-
-            <div class="item-actions" style="margin-top: 14px;">
-              <button id="attendance-filter-btn" type="button" class="primary-btn">查詢</button>
-              <button id="attendance-filter-reset-btn" type="button" class="small-btn">清除條件</button>
-            </div>
-          </div>
-          
-          <div id="attendance-summary-list" class="list-wrap" style="margin-top: 20px;"></div>
-        </div>
-      </section>
 
       <section id="page-schedule" class="page-section hidden">
       <div class="card leave-board-card">
@@ -570,16 +313,6 @@
         </div>
       </section>
     </section>
-  </div>
-
-  <div id="attendance-record-popover-backdrop" class="schedule-popover-backdrop hidden">
-    <div id="attendance-record-popover" class="schedule-popover attendance-record-popover">
-      <div class="schedule-popover-header">
-        <h4 id="attendance-record-popover-title">打卡記錄</h4>
-        <button id="attendance-record-popover-close" type="button" class="small-btn cancel-btn">關閉</button>
-      </div>
-      <div id="attendance-record-popover-content" class="list-wrap"></div>
-    </div>
   </div>
 
   <div id="schedule-modal-backdrop" class="schedule-popover-backdrop hidden">
