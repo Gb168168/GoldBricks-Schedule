@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMNIPLAY 客服系統-4</title>
+  <title>OMNIPLAY 客服系統-5</title>
   <style>
     :root {
       --bg: #eef3f9;
@@ -563,9 +563,11 @@
     ];
 
     const DEFAULT_EMPLOYEE_RECORDS = [
-      { name: '臻', code: 'GB250201', account: 'GB250201', password: 'GB250201' },
-      { name: '晴', code: 'GB250901', account: 'GB250901', password: 'GB250901' },
-      { name: '澄', code: 'GB251001', account: 'GB251001', password: 'GB251001' }
+      { name: 'GoldBricks', code: 'GoldBricks', account: 'GoldBricks', password: 'GoldBricks' },
+      { name: '佳臻', code: 'F', account: 'GB250201', password: 'GB250201' },
+      { name: '晴心', code: 'S', account: 'GB250901', password: 'GB250901' },
+      { name: '程希', code: 'K', account: 'GB251001', password: 'GB251001' },
+      { name: '茗雅', code: 'E', account: 'GB260601', password: 'GB260601' }
     ];
 
     const menu = document.querySelector('#menu');
@@ -664,10 +666,11 @@
     };
 
     const startEmployeesListener = () => {
+      employeeRecords = DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `default-${index}`, ...record }));
+      renderEmployeeRecords();
+      
       if (!db || !employeesCollection) {
-        employeeRecords = DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `default-${index}`, ...record }));
         setFirebaseStatus('尚未設定 Firebase，請先在 window.__FIREBASE_CONFIG__ 放入專案設定。');
-        renderEmployeeRecords();
         return;
       }
 
@@ -682,7 +685,9 @@
         renderEmployeeRecords();
       }, (error) => {
         console.error('同步 Firestore 人員資料失敗', error);
-        setFirebaseStatus('Firestore 同步失敗，請檢查 Firebase 設定與安全規則。');
+        employeeRecords = DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `default-${index}`, ...record }));
+        renderEmployeeRecords();
+        setFirebaseStatus('Firestore 同步失敗，已改用內建帳號登入。請檢查 Firebase 設定與安全規則。');
       });
     };
 
@@ -775,8 +780,9 @@
         return;
       }
       if (editingEmployeeId) {
+        await updateDoc(doc(db, 'employees', editingEmployeeId), nextRecord);
+      } else {
         await addDoc(employeesCollection, { ...nextRecord, createdAt: serverTimestamp() });
-      } 
         employeeRecords.push(nextRecord);
       }
       resetEmployeeFormMode();
