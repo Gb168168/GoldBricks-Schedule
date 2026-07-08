@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMNIPLAY 客服系統-2</title>
+  <title>OMNIPLAY 客服系統-3</title>
   <style>
     :root {
       --bg: #eef3f9;
@@ -343,7 +343,7 @@
     .employee-table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 720px;
+      min-width: 860px;
     }
     .employee-table th,
     .employee-table td {
@@ -359,6 +359,39 @@
       letter-spacing: .04em;
     }
     .employee-table td strong { color: var(--text); }
+    .table-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      padding: 9px 12px;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+    }
+    .edit-btn { background: #0ea5e9; }
+    .delete-btn { background: #ef4444; }
+    .secondary-btn {
+      padding: 16px 20px;
+      color: #1e293b;
+      background: #e2e8f0;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      align-items: end;
+    }
+    .page-placeholder {
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .login-error {
+      min-height: 22px;
+      margin-top: 12px;
+      color: #dc2626;
+      font-weight: 700;
+    }
     .employee-empty {
       padding: 24px;
       color: var(--muted);
@@ -392,7 +425,8 @@
       .dashboard-grid { grid-template-columns: 1fr; }
       .topbar { align-items: flex-start; flex-direction: column; }
       .employee-form-grid { grid-template-columns: 1fr; }
-      .employee-form-grid .login-btn { width: 100%; }
+      .employee-form-grid .login-btn, .secondary-btn { width: 100%; }
+      .form-actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -418,7 +452,8 @@
           </div>
           <button class="login-btn" type="submit">登入</button>
         </form>
-        <div class="demo-note">展示版：任意帳號與密碼皆可登入，用於預覽客服系統畫面。</div>
+        <p class="login-error" id="loginError" aria-live="polite"></p>
+        <div class="demo-note">僅可使用「客服內部／人員管理」建立的人員帳號與密碼登入。</div>
       </div>
     </div>
   </section>
@@ -481,24 +516,32 @@
             <label for="staffPassword">密碼</label>
             <input id="staffPassword" name="staffPassword" type="text" placeholder="登入密碼" autocomplete="new-password" required />
           </div>
-          <button class="login-btn" type="submit">新增人員</button>
+          <div class="form-actions">
+            <button class="login-btn" id="employeeSubmitBtn" type="submit">新增人員</button>
+            <button class="secondary-btn" id="employeeCancelBtn" type="button" hidden>取消編輯</button>
+          </div>
         </form>
         <div class="employee-table-wrap">
           <table class="employee-table" aria-label="客服內部人員管理清單">
             <thead>
-              <tr><th>名字</th><th>代號</th><th>帳號</th><th>密碼</th></tr>
+              <tr><th>名字</th><th>代號</th><th>帳號</th><th>密碼</th><th>操作</th></tr
             </thead>
             <tbody id="employeeTableBody"></tbody>
           </table>
         </div>
         <div class="employee-empty" id="employeeEmpty">尚未建立人員資料，請先新增一筆。</div>
       </section>
+      
+      <section class="content-card" id="staffHandlingPanel" hidden>
+        <h2>人員處理</h2>
+        <p class="page-placeholder">此頁面提供客服內部人員異動、處理紀錄與後續追蹤使用。可先由人員管理建立帳號，再於此頁規劃處理流程。</p>
+      </section>
     </main>
   </section>
 
   <script>
     const menuData = [
-      { title: '客服內部', icon: '👥', items: ['人員管理', '當日上班人員', '休假表', '排程表'] },
+      { title: '客服內部', icon: '👥', items: ['人員管理', '人員處理', '當日上班人員', '休假表', '排程表'] },
       { title: '作業管理', icon: '🗂️', items: ['日誌', '交接', '提報', '對接追蹤'] },
       { title: '會議歷程', icon: '📝', items: ['會議紀錄'] },
       { title: '資料庫', icon: '🧠', items: ['知識庫', 'AI 資料庫'] }
@@ -519,15 +562,43 @@
     const employeeManagementForm = document.querySelector('#employeeManagementForm');
     const employeeTableBody = document.querySelector('#employeeTableBody');
     const employeeEmpty = document.querySelector('#employeeEmpty');
-    const employeeRecords = [
+    const employeeSubmitBtn = document.querySelector('#employeeSubmitBtn');
+    const employeeCancelBtn = document.querySelector('#employeeCancelBtn');
+    const staffHandlingPanel = document.querySelector('#staffHandlingPanel');
+    const loginError = document.querySelector('#loginError');
+    const EMPLOYEE_STORAGE_KEY = 'omni_csr_employee_records';
+    let editingEmployeeIndex = -1;
+
+    const loadEmployeeRecords = () => {
+      try {
+        const savedRecords = JSON.parse(localStorage.getItem(EMPLOYEE_STORAGE_KEY) || 'null');
+        if (Array.isArray(savedRecords)) return savedRecords;
+      } catch (error) {
+        console.warn('讀取人員資料失敗', error);
+      }
+      return [
       { name: '臻', code: 'GB250201', account: 'GB250201', password: 'GB250201' },
       { name: '晴', code: 'GB250901', account: 'GB250901', password: 'GB250901' },
       { name: '澄', code: 'GB251001', account: 'GB251001', password: 'GB251001' }
     ];
+    };
+
+    let employeeRecords = loadEmployeeRecords();
+
+    const saveEmployeeRecords = () => {
+      localStorage.setItem(EMPLOYEE_STORAGE_KEY, JSON.stringify(employeeRecords));
+    };
+
+    const resetEmployeeFormMode = () => {
+      editingEmployeeIndex = -1;
+      employeeSubmitBtn.textContent = '新增人員';
+      employeeCancelBtn.hidden = true;
+      employeeManagementForm.reset();
+    };
 
     const renderEmployeeRecords = () => {
       employeeTableBody.innerHTML = '';
-      employeeRecords.forEach((employee) => {
+      employeeRecords.forEach((employee, index) => {
         const row = document.createElement('tr');
         const nameCell = document.createElement('td');
         const nameText = document.createElement('strong');
@@ -538,6 +609,36 @@
           if (!(value instanceof HTMLElement)) cell.textContent = value;
           row.appendChild(cell);
         });
+        const actionCell = document.createElement('td');
+        const actionWrap = document.createElement('div');
+        actionWrap.className = 'table-actions';
+        const editButton = document.createElement('button');
+        editButton.className = 'action-btn edit-btn';
+        editButton.type = 'button';
+        editButton.textContent = '編輯';
+        editButton.addEventListener('click', () => {
+          editingEmployeeIndex = index;
+          employeeManagementForm.staffName.value = employee.name;
+          employeeManagementForm.staffCode.value = employee.code;
+          employeeManagementForm.staffAccount.value = employee.account;
+          employeeManagementForm.staffPassword.value = employee.password;
+          employeeSubmitBtn.textContent = '儲存修改';
+          employeeCancelBtn.hidden = false;
+        });
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'action-btn delete-btn';
+        deleteButton.type = 'button';
+        deleteButton.textContent = '刪除';
+        deleteButton.addEventListener('click', () => {
+          if (!confirm(`確定要刪除 ${employee.name} 的人員資料嗎？`)) return;
+          employeeRecords.splice(index, 1);
+          saveEmployeeRecords();
+          resetEmployeeFormMode();
+          renderEmployeeRecords();
+        });
+        actionWrap.append(editButton, deleteButton);
+        actionCell.appendChild(actionWrap);
+        row.appendChild(actionCell);
         employeeTableBody.appendChild(row);
       });
       employeeEmpty.hidden = employeeRecords.length > 0;
@@ -550,6 +651,7 @@
       pageDescription.textContent = '快速查看今日客服營運重點與待辦作業。';
       homePanels.forEach((panel) => { panel.hidden = false; });
       employeeManagementPanel.hidden = true;
+      staffHandlingPanel.hidden = true;
     };
 
     homeLink.addEventListener('click', (event) => {
@@ -582,8 +684,12 @@
           pageDescription.textContent = `${section.title} / ${item} 的資料維護與查詢作業。`;
           homePanels.forEach((panel) => { panel.hidden = true; });
           employeeManagementPanel.hidden = item !== '人員管理';
+          staffHandlingPanel.hidden = item !== '人員處理';
           if (item === '人員管理') {
             pageDescription.textContent = '客服內部 / 人員管理：維護名字、代號、帳號與密碼。';
+          }
+          if (item === '人員處理') {
+            pageDescription.textContent = '客服內部 / 人員處理：追蹤人員異動與處理事項。';
           }
         });
         li.appendChild(link);
@@ -606,22 +712,43 @@
     employeeManagementForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(employeeManagementForm);
-      employeeRecords.push({
+      const nextRecord = {
         name: formData.get('staffName').trim(),
         code: formData.get('staffCode').trim(),
         account: formData.get('staffAccount').trim(),
         password: formData.get('staffPassword').trim()
-      });
-      employeeManagementForm.reset();
+      };
+      const duplicateAccountIndex = employeeRecords.findIndex((employee, index) => employee.account === nextRecord.account && index !== editingEmployeeIndex);
+      if (duplicateAccountIndex >= 0) {
+        alert('此帳號已存在，請使用不同帳號。');
+        return;
+      }
+      if (editingEmployeeIndex >= 0) {
+        employeeRecords[editingEmployeeIndex] = nextRecord;
+      } else {
+        employeeRecords.push(nextRecord);
+      }
+      saveEmployeeRecords();
+      resetEmployeeFormMode();
       renderEmployeeRecords();
     });
 
+    employeeCancelBtn.addEventListener('click', resetEmployeeFormMode);
+    
     renderEmployeeRecords();
 
     loginForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(loginForm);
-      loginUser.textContent = formData.get('account') || '客服人員';
+      const account = formData.get('account').trim();
+      const password = formData.get('password').trim();
+      const matchedEmployee = employeeRecords.find((employee) => employee.account === account && employee.password === password);
+      if (!matchedEmployee) {
+        loginError.textContent = '帳號或密碼錯誤，僅限人員管理內建立的人員登入。';
+        return;
+      }
+      loginError.textContent = '';
+      loginUser.textContent = matchedEmployee.name || matchedEmployee.account || '客服人員';
       loginPage.style.display = 'none';
       appShell.classList.add('is-active');
     });
