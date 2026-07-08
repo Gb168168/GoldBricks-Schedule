@@ -21,6 +21,7 @@
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
 
     body {
       margin: 0;
@@ -329,6 +330,43 @@
     }
 
     .content-card h2 { margin: 0 0 14px; }
+    .employee-management-panel { display: grid; gap: 22px; }
+    .employee-form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+    .employee-form-grid .field { margin-bottom: 0; }
+    .employee-form-grid .login-btn { height: 52px; }
+    .employee-table-wrap { overflow-x: auto; }
+    .employee-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+    .employee-table th,
+    .employee-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
+    }
+    .employee-table th {
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 14px;
+      letter-spacing: .04em;
+    }
+    .employee-table td strong { color: var(--text); }
+    .employee-empty {
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+    }
     .task-list { margin: 0; padding: 0; list-style: none; }
     .task-list li {
       display: flex;
@@ -353,6 +391,8 @@
       .login-page, .main { padding: 18px; }
       .dashboard-grid { grid-template-columns: 1fr; }
       .topbar { align-items: flex-start; flex-direction: column; }
+      .employee-form-grid { grid-template-columns: 1fr; }
+      .employee-form-grid .login-btn { width: 100%; }
     }
   </style>
 </head>
@@ -418,6 +458,41 @@
           <li><span>整理會議紀錄並同步 AI 資料庫</span><span class="status">待處理</span></li>
         </ul>
       </section>
+      
+      <section class="content-card employee-management-panel" id="employeeManagementPanel" hidden>
+        <div>
+          <h2>人員管理</h2>
+          <p class="hint">建立客服內部人員資料，包含名字、代號、帳號與密碼。</p>
+        </div>
+        <form id="employeeManagementForm" class="employee-form-grid">
+          <div class="field">
+            <label for="staffName">名字</label>
+            <input id="staffName" name="staffName" type="text" placeholder="例如：小明" required />
+          </div>
+          <div class="field">
+            <label for="staffCode">代號</label>
+            <input id="staffCode" name="staffCode" type="text" placeholder="例如：CS001" required />
+          </div>
+          <div class="field">
+            <label for="staffAccount">帳號</label>
+            <input id="staffAccount" name="staffAccount" type="text" placeholder="登入帳號" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="staffPassword">密碼</label>
+            <input id="staffPassword" name="staffPassword" type="text" placeholder="登入密碼" autocomplete="new-password" required />
+          </div>
+          <button class="login-btn" type="submit">新增人員</button>
+        </form>
+        <div class="employee-table-wrap">
+          <table class="employee-table" aria-label="客服內部人員管理清單">
+            <thead>
+              <tr><th>名字</th><th>代號</th><th>帳號</th><th>密碼</th></tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+        </div>
+        <div class="employee-empty" id="employeeEmpty">尚未建立人員資料，請先新增一筆。</div>
+      </section>
     </main>
   </section>
 
@@ -440,6 +515,33 @@
     const pageTitle = document.querySelector('#pageTitle');
     const pageDescription = document.querySelector('#pageDescription');
     const homePanels = document.querySelectorAll('.home-panel');
+    const employeeManagementPanel = document.querySelector('#employeeManagementPanel');
+    const employeeManagementForm = document.querySelector('#employeeManagementForm');
+    const employeeTableBody = document.querySelector('#employeeTableBody');
+    const employeeEmpty = document.querySelector('#employeeEmpty');
+    const employeeRecords = [
+      { name: '臻', code: 'GB250201', account: 'GB250201', password: 'GB250201' },
+      { name: '晴', code: 'GB250901', account: 'GB250901', password: 'GB250901' },
+      { name: '澄', code: 'GB251001', account: 'GB251001', password: 'GB251001' }
+    ];
+
+    const renderEmployeeRecords = () => {
+      employeeTableBody.innerHTML = '';
+      employeeRecords.forEach((employee) => {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        const nameText = document.createElement('strong');
+        nameText.textContent = employee.name;
+        nameCell.appendChild(nameText);
+        [nameCell, employee.code, employee.account, employee.password].forEach((value) => {
+          const cell = value instanceof HTMLElement ? value : document.createElement('td');
+          if (!(value instanceof HTMLElement)) cell.textContent = value;
+          row.appendChild(cell);
+        });
+        employeeTableBody.appendChild(row);
+      });
+      employeeEmpty.hidden = employeeRecords.length > 0;
+    };
 
     const activateHome = () => {
       document.querySelectorAll('.submenu a, .home-link').forEach((anchor) => anchor.classList.remove('is-active'));
@@ -447,6 +549,7 @@
       pageTitle.textContent = '首頁';
       pageDescription.textContent = '快速查看今日客服營運重點與待辦作業。';
       homePanels.forEach((panel) => { panel.hidden = false; });
+      employeeManagementPanel.hidden = true;
     };
 
     homeLink.addEventListener('click', (event) => {
@@ -478,6 +581,10 @@
           pageTitle.textContent = item;
           pageDescription.textContent = `${section.title} / ${item} 的資料維護與查詢作業。`;
           homePanels.forEach((panel) => { panel.hidden = true; });
+          employeeManagementPanel.hidden = item !== '人員管理';
+          if (item === '人員管理') {
+            pageDescription.textContent = '客服內部 / 人員管理：維護名字、代號、帳號與密碼。';
+          }
         });
         li.appendChild(link);
         list.appendChild(li);
@@ -495,6 +602,21 @@
     sidebarToggle.addEventListener('click', () => {
       sidebar.classList.toggle('is-collapsed');
     });
+
+    employeeManagementForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const formData = new FormData(employeeManagementForm);
+      employeeRecords.push({
+        name: formData.get('staffName').trim(),
+        code: formData.get('staffCode').trim(),
+        account: formData.get('staffAccount').trim(),
+        password: formData.get('staffPassword').trim()
+      });
+      employeeManagementForm.reset();
+      renderEmployeeRecords();
+    });
+
+    renderEmployeeRecords();
 
     loginForm.addEventListener('submit', (event) => {
       event.preventDefault();
