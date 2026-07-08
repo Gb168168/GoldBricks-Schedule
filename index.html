@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMNIPLAY 客服系統-3</title>
+  <title>OMNIPLAY 客服系統-4</title>
   <style>
     :root {
       --bg: #eef3f9;
@@ -498,6 +498,7 @@
         <div>
           <h2>人員管理</h2>
           <p class="hint">建立客服內部人員資料，包含名字、代號、帳號與密碼。</p>
+          <p class="hint" id="firebaseStatus">正在連線 Firebase Firestore...</p>
         </div>
         <form id="employeeManagementForm" class="employee-form-grid">
           <div class="field">
@@ -524,7 +525,7 @@
         <div class="employee-table-wrap">
           <table class="employee-table" aria-label="客服內部人員管理清單">
             <thead>
-              <tr><th>名字</th><th>代號</th><th>帳號</th><th>密碼</th><th>操作</th></tr
+              <tr><th>名字</th><th>代號</th><th>帳號</th><th>密碼</th><th>操作</th></tr>
             </thead>
             <tbody id="employeeTableBody"></tbody>
           </table>
@@ -539,12 +540,32 @@
     </main>
   </section>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      doc,
+      query,
+      orderBy,
+      onSnapshot,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
     const menuData = [
       { title: '客服內部', icon: '👥', items: ['人員管理', '人員處理', '當日上班人員', '休假表', '排程表'] },
       { title: '作業管理', icon: '🗂️', items: ['日誌', '交接', '提報', '對接追蹤'] },
       { title: '會議歷程', icon: '📝', items: ['會議紀錄'] },
       { title: '資料庫', icon: '🧠', items: ['知識庫', 'AI 資料庫'] }
+    ];
+
+    const DEFAULT_EMPLOYEE_RECORDS = [
+      { name: '臻', code: 'GB250201', account: 'GB250201', password: 'GB250201' },
+      { name: '晴', code: 'GB250901', account: 'GB250901', password: 'GB250901' },
+      { name: '澄', code: 'GB251001', account: 'GB251001', password: 'GB251001' }
     ];
 
     const menu = document.querySelector('#menu');
@@ -566,39 +587,38 @@
     const employeeCancelBtn = document.querySelector('#employeeCancelBtn');
     const staffHandlingPanel = document.querySelector('#staffHandlingPanel');
     const loginError = document.querySelector('#loginError');
-    const EMPLOYEE_STORAGE_KEY = 'omni_csr_employee_records';
-    let editingEmployeeIndex = -1;
+    const firebaseStatus = document.querySelector('#firebaseStatus');
+    const firebaseConfig = window.__FIREBASE_CONFIG__;
+    const firebaseApp = firebaseConfig ? initializeApp(firebaseConfig) : null;
+    const db = firebaseApp ? getFirestore(firebaseApp) : null;
+    const employeesCollection = db ? collection(db, 'employees') : null;
+    let employeeRecords = [];
+    let editingEmployeeId = '';
 
-    const loadEmployeeRecords = () => {
-      try {
-        const savedRecords = JSON.parse(localStorage.getItem(EMPLOYEE_STORAGE_KEY) || 'null');
-        if (Array.isArray(savedRecords)) return savedRecords;
-      } catch (error) {
-        console.warn('讀取人員資料失敗', error);
-      }
-      return [
-      { name: '臻', code: 'GB250201', account: 'GB250201', password: 'GB250201' },
-      { name: '晴', code: 'GB250901', account: 'GB250901', password: 'GB250901' },
-      { name: '澄', code: 'GB251001', account: 'GB251001', password: 'GB251001' }
-    ];
+    const setFirebaseStatus = (message) => {
+      if (firebaseStatus) firebaseStatus.textContent = message;
     };
 
-    let employeeRecords = loadEmployeeRecords();
+    const normalizeEmployeeRecord = (record) => ({
+      id: record.id || '',
+      name: record.name || '',
+      code: record.code || record.employeeId || '',
+      account: record.account || '',
+      password: record.password || ''
+    });
 
-    const saveEmployeeRecords = () => {
-      localStorage.setItem(EMPLOYEE_STORAGE_KEY, JSON.stringify(employeeRecords));
-    };
-
-    const resetEmployeeFormMode = () => {
-      editingEmployeeIndex = -1;
-      employeeSubmitBtn.textContent = '新增人員';
-      employeeCancelBtn.hidden = true;
-      employeeManagementForm.reset();
+    const seedDefaultEmployees = async () => {
+      if (!employeesCollection) return;
+      await Promise.all(DEFAULT_EMPLOYEE_RECORDS.map((record) => addDoc(employeesCollection, {
+        ...record,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })));
     };
 
     const renderEmployeeRecords = () => {
       employeeTableBody.innerHTML = '';
-      employeeRecords.forEach((employee, index) => {
+      employeeRecords.forEach((employee) => {
         const row = document.createElement('tr');
         const nameCell = document.createElement('td');
         const nameText = document.createElement('strong');
@@ -617,7 +637,7 @@
         editButton.type = 'button';
         editButton.textContent = '編輯';
         editButton.addEventListener('click', () => {
-          editingEmployeeIndex = index;
+          editingEmployeeId = employee.id;
           employeeManagementForm.staffName.value = employee.name;
           employeeManagementForm.staffCode.value = employee.code;
           employeeManagementForm.staffAccount.value = employee.account;
@@ -629,12 +649,11 @@
         deleteButton.className = 'action-btn delete-btn';
         deleteButton.type = 'button';
         deleteButton.textContent = '刪除';
-        deleteButton.addEventListener('click', () => {
+        deleteButton.addEventListener('click', async () => {
+          if (!db || !employee.id) return alert('Firebase Firestore 尚未連線，無法刪除人員資料。');
           if (!confirm(`確定要刪除 ${employee.name} 的人員資料嗎？`)) return;
-          employeeRecords.splice(index, 1);
-          saveEmployeeRecords();
+          await deleteDoc(doc(db, 'employees', employee.id));
           resetEmployeeFormMode();
-          renderEmployeeRecords();
         });
         actionWrap.append(editButton, deleteButton);
         actionCell.appendChild(actionWrap);
@@ -642,6 +661,36 @@
         employeeTableBody.appendChild(row);
       });
       employeeEmpty.hidden = employeeRecords.length > 0;
+    };
+
+    const startEmployeesListener = () => {
+      if (!db || !employeesCollection) {
+        employeeRecords = DEFAULT_EMPLOYEE_RECORDS.map((record, index) => ({ id: `default-${index}`, ...record }));
+        setFirebaseStatus('尚未設定 Firebase，請先在 window.__FIREBASE_CONFIG__ 放入專案設定。');
+        renderEmployeeRecords();
+        return;
+      }
+
+      setFirebaseStatus('已連線 Firebase Firestore，正在同步人員資料。');
+      const employeesQuery = query(employeesCollection, orderBy('code', 'asc'));
+      onSnapshot(employeesQuery, async (snapshot) => {
+        if (snapshot.empty) {
+          await seedDefaultEmployees();
+          return;
+        }
+        employeeRecords = snapshot.docs.map((docItem) => normalizeEmployeeRecord({ id: docItem.id, ...docItem.data() }));
+        renderEmployeeRecords();
+      }, (error) => {
+        console.error('同步 Firestore 人員資料失敗', error);
+        setFirebaseStatus('Firestore 同步失敗，請檢查 Firebase 設定與安全規則。');
+      });
+    };
+
+    const resetEmployeeFormMode = () => {
+      editingEmployeeId = '';
+      employeeSubmitBtn.textContent = '新增人員';
+      employeeCancelBtn.hidden = true;
+      employeeManagementForm.reset();
     };
 
     const activateHome = () => {
@@ -671,7 +720,7 @@
       const list = document.createElement('ul');
       list.className = `submenu ${index === 0 ? 'is-open' : ''}`;
 
-      section.items.forEach((item, itemIndex) => {
+      section.items.forEach((item) => {
         const li = document.createElement('li');
         const link = document.createElement('a');
         link.href = '#';
@@ -686,7 +735,7 @@
           employeeManagementPanel.hidden = item !== '人員管理';
           staffHandlingPanel.hidden = item !== '人員處理';
           if (item === '人員管理') {
-            pageDescription.textContent = '客服內部 / 人員管理：維護名字、代號、帳號與密碼。';
+            pageDescription.textContent = '客服內部 / 人員管理：維護名字、代號、帳號與密碼，並同步 Firebase Firestore。';
           }
           if (item === '人員處理') {
             pageDescription.textContent = '客服內部 / 人員處理：追蹤人員異動與處理事項。';
@@ -709,34 +758,33 @@
       sidebar.classList.toggle('is-collapsed');
     });
 
-    employeeManagementForm.addEventListener('submit', (event) => {
+    employeeManagementForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (!db || !employeesCollection) return alert('Firebase Firestore 尚未連線，無法儲存人員資料。請先設定 window.__FIREBASE_CONFIG__。');
       const formData = new FormData(employeeManagementForm);
       const nextRecord = {
         name: formData.get('staffName').trim(),
         code: formData.get('staffCode').trim(),
         account: formData.get('staffAccount').trim(),
-        password: formData.get('staffPassword').trim()
+        password: formData.get('staffPassword').trim(),
+        updatedAt: serverTimestamp()
       };
-      const duplicateAccountIndex = employeeRecords.findIndex((employee, index) => employee.account === nextRecord.account && index !== editingEmployeeIndex);
-      if (duplicateAccountIndex >= 0) {
+      const duplicateAccount = employeeRecords.find((employee) => employee.account === nextRecord.account && employee.id !== editingEmployeeId);
+      if (duplicateAccount) {
         alert('此帳號已存在，請使用不同帳號。');
         return;
       }
-      if (editingEmployeeIndex >= 0) {
-        employeeRecords[editingEmployeeIndex] = nextRecord;
-      } else {
+      if (editingEmployeeId) {
+        await addDoc(employeesCollection, { ...nextRecord, createdAt: serverTimestamp() });
+      } 
         employeeRecords.push(nextRecord);
       }
-      saveEmployeeRecords();
       resetEmployeeFormMode();
-      renderEmployeeRecords();
     });
 
     employeeCancelBtn.addEventListener('click', resetEmployeeFormMode);
+    startEmployeesListener();
     
-    renderEmployeeRecords();
-
     loginForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(loginForm);
